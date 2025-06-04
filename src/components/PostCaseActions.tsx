@@ -4,10 +4,9 @@ import React from "react";
 import SkeuoGetStartedButton from "./SkeuoGetStartedButton";
 
 type PostCaseActionsProps = {
-  caseCompletionData: any;
+  caseCompletionData: unknown;
   onNewCaseSameCondition: () => void;
   onSavePerformance: () => void;
-  onViewProgress: () => void;
   onStartNewCase: () => void;
   navLoading?: string | null; // 'new', 'ward', 'logout' or null
 };
@@ -16,7 +15,6 @@ export default function PostCaseActions({
   caseCompletionData,
   onNewCaseSameCondition,
   onSavePerformance,
-  onViewProgress,
   onStartNewCase,
   navLoading,
 }: PostCaseActionsProps) {

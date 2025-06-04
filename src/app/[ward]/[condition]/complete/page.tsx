@@ -3,7 +3,7 @@
 import { useRouter, useParams } from 'next/navigation';
 import PostCaseActions from '../../../../components/PostCaseActions';
 import { useTokens } from '../../../../components/TokenContext';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 export default function PostCaseActionsPage() {
   const router = useRouter();
@@ -12,8 +12,6 @@ export default function PostCaseActionsPage() {
 
   const wardParam = typeof params.ward === 'string' ? params.ward : Array.isArray(params.ward) ? params.ward[0] : '';
   const conditionParam = typeof params.condition === 'string' ? params.condition : Array.isArray(params.condition) ? params.condition[0] : '';
-
-  const [caseCompletionData, setCaseCompletionData] = useState<any>(null);
 
   useEffect(() => {
     if (!accessToken || !refreshToken) {
@@ -29,9 +27,6 @@ export default function PostCaseActionsPage() {
   const handleStartNewCase = () => {
     router.push('/wards');
   };
-  const handleViewProgress = () => {
-    router.push('/progress');
-  };
   const handleSavePerformance = () => {
     clearTokens();
     router.push('/auth');
@@ -41,10 +36,9 @@ export default function PostCaseActionsPage() {
 
   return (
     <PostCaseActions
-      caseCompletionData={caseCompletionData}
+      caseCompletionData={{}}
       onNewCaseSameCondition={handleNewCaseSameCondition}
       onSavePerformance={handleSavePerformance}
-      onViewProgress={handleViewProgress}
       onStartNewCase={handleStartNewCase}
     />
   );

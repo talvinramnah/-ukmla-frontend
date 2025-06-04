@@ -46,8 +46,8 @@ export default function AuthModal({ onSuccess }: AuthModalProps) {
         setMessage('✅  Logged in!');
         onSuccess(data.access_token, data.refresh_token);
       }
-    } catch (err: any) {
-      setMessage(`❌  ${err.message}`);
+    } catch (err: unknown) {
+      setMessage(`❌  ${err instanceof Error ? err.message : 'An error occurred.'}`);
     }
   };
 

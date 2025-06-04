@@ -1,3 +1,57 @@
+# Vercel Deployment Preparation Plan (Planner Mode)
+
+---
+
+## Background and Motivation
+You want to deploy your Next.js frontend to Vercel, but previously encountered linter and "x is defined but never used" errors. To avoid disrupting your working version, you want to prepare a dedicated deployment branch, fix all issues, and only merge to `main` after a successful Vercel deployment.
+
+## Key Challenges and Analysis
+- Ensuring all linter and TypeScript errors are resolved for a clean Vercel build.
+- Isolating deployment changes from your main and backup branches.
+- Verifying the app works both locally and on Vercel before merging.
+
+## High-level Task Breakdown
+
+1. **Create a New Deployment Branch**
+   - Name: `vercel-deploy` (or similar)
+   - Success Criteria: Branch is created from the current working version.
+
+2. **Run Linter and TypeScript Checks**
+   - Run `npm run lint` and `tsc` (TypeScript compiler) to identify all issues.
+   - Success Criteria: All errors and warnings are listed.
+
+3. **Fix All Linter and TypeScript Errors**
+   - Remove unused variables, fix type errors, and resolve all linter issues.
+   - Success Criteria: `npm run lint` and `tsc` both pass with no errors.
+
+4. **Test Locally**
+   - Run `npm run dev` and verify the app works as expected.
+   - Success Criteria: App runs locally with no errors or warnings.
+
+5. **Deploy to Vercel (Preview)**
+   - Push the branch to GitHub and connect it to Vercel for a preview deployment.
+   - Success Criteria: Vercel build succeeds and the app is accessible at the preview URL.
+
+6. **Final Verification**
+   - Manually test the deployed app on Vercel.
+   - Success Criteria: All core features work as expected in the Vercel environment.
+
+7. **Merge to Main (After Success)**
+   - Only after successful deployment and testing, merge the branch to `main`.
+   - Success Criteria: `main` is now Vercel-ready and can be deployed as the production version.
+
+## Project Status Board
+
+- [x] Create deployment branch
+- [ ] Run linter and TypeScript checks
+- [ ] Fix all errors
+- [ ] Test locally
+- [ ] Deploy to Vercel (preview)
+- [ ] Final verification
+- [ ] Merge to main
+
+---
+
 # Recent Progress (June 2024)
 
 - ✅ Token context/provider implemented using React Context API (`TokenContext.tsx`), provided at the app root in `layout.tsx`.
@@ -173,6 +227,7 @@
 
 # Executor's Feedback or Assistance Requests
 
+- [2025-06-02] Created and checked out new branch 'vercel-deploy' for Vercel deployment preparation. Next step: Run linter and TypeScript checks (`npm run lint` and `tsc`).
 - Token context/provider and full app flow wiring are complete and functional.
 - Chat double-load bug is fixed; only one case is started per user action.
 - API integration is robust for the full user flow.
@@ -656,72 +711,4 @@ Instead of separating into different pages (which conflicts with current archite
 ### Executor Progress (TopBar)
 - Created `TopBar.tsx` client component with responsive desktop/mobile layouts, hover effects, and logout functionality.
 - Integrated into `ClientLayout.tsx` with flex-column structure so TopBar appears above scrollable content, but not over Dynamic Island.
-- Added placeholder pages: `/profile` and `/leaderboard` with basic back button.
-- Pending: finalize subtle shadow spacing tweaks (4.1.7) and WeeklySummary skeleton.
-
-# 🗺️ Navigation & Breadcrumb Enhancement Plan (June 2025)
-
-## Background and Motivation
-The current component-based flow works, but users cannot rely on the browser URL or back button.  Navigation sometimes feels buggy because everything happens on the same `/wards` route.  The user explicitly requested human-readable URLs (e.g. `http://localhost:3000/ophthalmology/stye`) and clear breadcrumbs on every page.  Only one API endpoint (`/save_progress`) actually mutates data, so we can safely introduce proper client-side routing without database side-effects.
-
-Goals:
-1. Implement friendly, hierarchical URLs that map to **Ward → Condition → Chat**.
-2. Show a breadcrumb bar that reflects the current location and is clickable.
-3. Keep navigation lightning–fast (client side) and use large, obvious in-app buttons.
-4. Profile & Leaderboard pages only need a single large button back to **Wards**.
-5. Dynamic Island and TopBar must continue to work on all authenticated pages.
-
-## Key Challenges and Analysis
-- Transition from single-page component flow to multi-page (Next.js App Router) without breaking token/context or Dynamic Island.
-- Ensure Chat component still receives `ward` and `condition` via route params and continues to stream messages & call `/save_progress`.
-- Breadcrumb component must map URL segments to display names (replace `_` with space, capitalise, etc.) and allow navigation.
-- Maintain deep-link ability: visiting `/ophthalmology/stye` should load Chat directly if tokens are present, otherwise redirect to login.
-- Large navigation buttons must be consistent across pages and accessible.
-
-## High-level Task Breakdown (Phase 3)
-
-### 6. Breadcrumb-based Navigation (Routing overhaul)
-- [x] **6.1 Architecture finalisation** – confirm dynamic routing structure `/wards`, `/[ward]`, `/[ward]/[condition]`.
-- [x] **6.2 Dynamic routes scaffolding** – create new folders & pages in `src/app`.
-- [x] **6.3 WardSelection page move** – make `/wards/page.tsx` render existing `WardSelection`.
-- [x] **6.4 ConditionSelection page** – new component to list conditions for chosen ward.
-- [x] **6.5 Chat route migration** – adapt existing `Chat` component to read params `{ ward, condition }`.
-- [x] **6.6 Breadcrumb component** – reusable navbar showing links: *Wards > {Ward} > {Condition}*.
-- [x] **6.7 Integrate Breadcrumb into layout** – place below TopBar on all authenticated pages.
-- [x] **6.8 In-app navigation buttons** – add large CTA buttons (Back, Next, etc.) per design.
-- [x] **6.9 Profile & Leaderboard tweaks** – add single "Back to Wards" button.
-- [x] **6.10 Disable/handle browser back bugs** – rely on Next.js routing; ensure no stale state.
-- [x] **6.11 QA & Testing** – verify URLs, breadcrumbs, navigation flow, token persistence, error handling.
-
-## Success Criteria
-- Visiting `/wards` lists wards. Selecting a ward navigates to `/{ward}` showing conditions. Selecting a condition navigates to `/{ward}/{condition}` and opens Chat.
-- Breadcrumb bar accurately reflects location and links are clickable.
-- Browser back/forward works without throwing errors or doubling API calls.
-- Large navigation buttons present and functional; Profile/Leaderboard include "Back to Wards" button.
-- Dynamic Island and TopBar remain intact; Chat `/save_progress` behaves unchanged.
-
-# Project Status Board (updated)
-
-### Phase 3: Navigation & Breadcrumbs (UPDATED)
-- [x] 6.1 Architecture finalisation
-- [x] 6.2 Dynamic routes scaffolding
-- [x] 6.3 Move WardSelection to /wards (route mode wiring)
-- [x] 6.4 ConditionSelection component/page
-- [x] 6.5 Chat route migration
-- [ ] 6.6 Breadcrumb component **(CANCELLED – not required)**
-- [ ] 6.7 Breadcrumb layout integration **(CANCELLED)**
-- [ ] 6.8 Large navigation buttons – verify presence on Profile & Leaderboard; add if missing
-- [ ] 6.9 Profile/Leaderboard back-to-wards button – Profile done? (needs confirmation)
-- [ ] 6.10 Browser back/forward QA – ensure history works, no double mounting
-- [ ] 6.11 Legacy route cleanup & final test – old /chat/* routes removed ✅
-
-### Executor Progress (Navigation)
-- ConditionSelection vertical layout & orange buttons restored.
-- Start screen now redirects to /auth via router.replace so URL shows `/auth`.
-- Chat no longer navigates to /complete; feedback card shown in-place.
-- Deleted obsolete files:
-  • `src/app/chat/[condition]/page.tsx`
-  • `src/app/chat/[condition]/complete/page.tsx`
-- Next: run manual QA for back/forward navigation and confirm large nav buttons on Profile + Leaderboard.
-
----
+- Added placeholder pages: `/profile`

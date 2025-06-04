@@ -1,5 +1,6 @@
 import SkeuoGetStartedButton from "./SkeuoGetStartedButton";
 import { useEffect } from "react";
+import Image from 'next/image';
 
 // TODO: Type the props properly if needed
 export default function GameStartScreen({ onStart }: { onStart: () => void }) {
@@ -37,9 +38,11 @@ export default function GameStartScreen({ onStart }: { onStart: () => void }) {
                 boxSizing: "border-box",
             }}
         >
-            <img
+            <Image
                 src="https://imgur.com/tkpU61s.png"
                 alt="Bleep64 Logo"
+                width={600}
+                height={600}
                 style={{
                     maxWidth: "min(50%, 600px)",
                     maxHeight: "60vh",

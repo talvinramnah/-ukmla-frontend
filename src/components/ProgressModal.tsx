@@ -2,6 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 
+// Define a ProgressData interface for the correct structure
+interface ProgressData {
+  overall: {
+    total_cases: number;
+    average_score: number;
+    success_rate: number;
+    total_badges: number;
+  };
+  ward_stats: Record<string, { total_cases: number; avg_score: number; success_rate: number }>;
+}
+
 type ProgressModalProps = {
   accessToken: string;
   refreshToken: string;
@@ -9,8 +20,8 @@ type ProgressModalProps = {
 };
 
 export default function ProgressModal({ accessToken, refreshToken, onClose }: ProgressModalProps) {
-    const [progressData, setProgressData] = useState<any>(null);
-    const [sessionData, setSessionData] = useState<any>(null);
+    const [progressData, setProgressData] = useState<ProgressData | null>(null);
+    const [sessionData, setSessionData] = useState<unknown>(null);
 
     useEffect(() => {
         const fetchProgressData = async () => {
@@ -156,7 +167,7 @@ export default function ProgressModal({ accessToken, refreshToken, onClose }: Pr
                 </div>
                 <div style={styles.section}>
                     <div style={styles.sectionTitle}>🏅 Ward Performance</div>
-                    {Object.entries(ward_stats).map(([ward, stats]: any) => (
+                    {Object.entries(ward_stats).map(([ward, stats]: [string, { total_cases: number; avg_score: number; success_rate: number }]) => (
                         <div key={ward} style={styles.wardItem}>
                             {ward}: {stats.total_cases} cases – Avg Score: {stats.avg_score.toFixed(1)} – Success Rate: {stats.success_rate.toFixed(1)}%
                         </div>

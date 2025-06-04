@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTokens } from './TokenContext';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 // Re-use ward images from WardSelection – duplicate small map for now
 const WARD_IMAGES: { [key: string]: string } = {
@@ -45,10 +46,17 @@ interface Badge {
   earned_at: string;
 }
 
+// Define a Stats interface for the stats state
+interface Stats {
+  total_cases: number;
+  average_score: number;
+  success_rate: number;
+}
+
 export default function ProfileDashboard() {
   const { accessToken, refreshToken } = useTokens();
   const [badges, setBadges] = useState<Badge[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -132,7 +140,7 @@ export default function ProfileDashboard() {
                   padding: 8,
                   borderRadius: 12,
                 }}>
-                  <img src={imgSrc} alt={b.ward} style={{ width: '100%', height: 'auto', imageRendering: 'pixelated' }} />
+                  <Image src={imgSrc} alt={b.ward} width={200} height={120} style={{ width: '100%', height: 'auto', imageRendering: 'pixelated' }} />
                 </div>
                 <div style={{ fontSize: 14, marginTop: 8 }}>{b.ward.replace(/_/g, ' ')}</div>
               </div>
@@ -144,7 +152,7 @@ export default function ProfileDashboard() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: any }) {
+function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
     <div style={{
       background: '#000',

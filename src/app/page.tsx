@@ -2,7 +2,6 @@
 
 import { useTokens } from "../components/TokenContext";
 import AuthModal from "../components/AuthModal";
-import MainFlow from "../components/MainFlow";
 import OnboardingModal from "../components/OnboardingModal";
 import GameStartScreen from "../components/GameStartScreen";
 import React, { useEffect, useState } from "react";
