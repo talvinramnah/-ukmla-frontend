@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 const TOP_IMAGE = 'https://i.pinimg.com/736x/df/c2/ba/dfc2ba3e8f202e967fa593fa1543f45f.jpg';
 const BOTTOM_IMAGE = 'https://i.imgur.com/RETsWtF.jpeg';
@@ -58,15 +59,12 @@ export default function DynamicIsland() {
             justifyContent: 'center',
           }}
         >
-          <img
+          <Image
             src={TOP_IMAGE}
             alt="Dynamic Island Top Content"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              display: 'block',
-            }}
+            width={400}
+            height={300}
+            style={{ width: '100%', height: 'auto', borderRadius: 16, objectFit: 'cover' }}
           />
         </div>
         <div
@@ -80,15 +78,12 @@ export default function DynamicIsland() {
             justifyContent: 'center',
           }}
         >
-          <img
+          <Image
             src={BOTTOM_IMAGE}
             alt="Dynamic Island Bottom Content"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              display: 'block',
-            }}
+            width={400}
+            height={200}
+            style={{ width: '100%', height: 'auto', borderRadius: 16, objectFit: 'cover' }}
           />
         </div>
       </aside>

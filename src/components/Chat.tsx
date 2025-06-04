@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import PostCaseActions from "./PostCaseActions";
 import { useRouter } from "next/navigation";
 import { useTokens } from "./TokenContext";
+import Image from "next/image";
 
 type ChatProps = {
   condition: string;
@@ -13,16 +14,45 @@ type ChatProps = {
   onCaseComplete?: () => void;
 };
 
+// Define interfaces for messages and caseCompletionData
+interface Message {
+  role: string;
+  content: string;
+}
+
+interface CaseCompletionData {
+  is_completed: boolean;
+  feedback: string;
+  score: number;
+  thread_metadata?: {
+    condition: string;
+    ward: string;
+    case_variation: number;
+  };
+  next_case_variation?: number;
+  available_actions?: string[];
+}
+
+// Add a type guard for CaseCompletionData
+function isCaseCompletionData(data: unknown): data is CaseCompletionData {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'is_completed' in data &&
+    'feedback' in data &&
+    'score' in data
+  );
+}
+
 export default function Chat({ condition, accessToken, refreshToken, leftAlignTitle, onCaseComplete }: ChatProps) {
-    const [messages, setMessages] = useState<any[]>([]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [threadId, setThreadId] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [caseCompleted, setCaseCompleted] = useState(false);
-    const [caseCompletionData, setCaseCompletionData] = useState<any>(null);
+    const [caseCompletionData, setCaseCompletionData] = useState<CaseCompletionData | null>(null);
     const [showActions, setShowActions] = useState(false);
     const [assistantMessageComplete, setAssistantMessageComplete] = useState(false);
-    const hasStarted = useRef(false);
     const router = useRouter();
     const { clearTokens } = useTokens();
     const [navLoading, setNavLoading] = useState<string | null>(null); // 'new', 'ward', 'logout'
@@ -31,7 +61,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     const doctorImg = "https://i.imgur.com/NYfCYKZ.png";
     const studentImg = "https://i.imgur.com/D7DZ2Wv.png";
 
-    const streamPost = async (url: string, body: any, onData: (data: any) => void, onHeaders?: (headers: Headers) => void) => {
+    const streamPost = async (url: string, body: unknown, onData: (data: unknown) => void, onHeaders?: (headers: Headers) => void) => {
         const response = await fetch(url, {
             method: "POST",
             headers: {
@@ -58,7 +88,9 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 if (part.startsWith("data:")) {
                     try {
                         const json = JSON.parse(part.slice(5).trim());
-                        onData(json);
+                        if (typeof json === 'object' && json && 'content' in json) {
+                            onData(json);
+                        }
                     } catch (err) {
                         console.error("Failed to parse SSE line", err);
                     }
@@ -90,7 +122,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     // Effect to start a new case
     useEffect(() => {
         if (!condition || !accessToken || threadId) return;
-        setMessages([{ role: "system", text: "⏳ Loading case..." }]);
+        setMessages([{ role: "system", content: "⏳ Loading case..." }]);
         setAssistantMessageComplete(false);
         let textBuffer = "";
         const start = async () => {
@@ -101,18 +133,21 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     "https://ukmla-case-tutor-api.onrender.com/start_case",
                     { condition: decodedCondition },
                     (data) => {
-                        if (data.content) {
-                            textBuffer += data.content;
-                            setMessages([{ role: "assistant", text: textBuffer }]);
-                        }
-                        if (data.is_completed) {
-                            setCaseCompleted(true);
-                            setCaseCompletionData(data);
-                            setShowActions(true);
-                        }
-                        // Check if this is the end of streaming (no more content expected)
-                        if (!data.content && !data.is_completed) {
-                            setAssistantMessageComplete(true);
+                        if (typeof data === 'object' && data && 'content' in data) {
+                            const content = data.content;
+                            if (content) {
+                                textBuffer += content;
+                                setMessages([{ role: "assistant", content: textBuffer }]);
+                            }
+                            if (isCaseCompletionData(data)) {
+                                setCaseCompleted(true);
+                                setCaseCompletionData(data);
+                                setShowActions(true);
+                            }
+                            // Check if this is the end of streaming (no more content expected)
+                            if (!content) {
+                                setAssistantMessageComplete(true);
+                            }
                         }
                     },
                     (headers) => {
@@ -123,8 +158,9 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     }
                 );
             } catch (err) {
-                setMessages([{ role: "system", text: "❌ Failed to start case." }]);
+                setMessages([{ role: "system", content: "❌ Failed to start case." }]);
                 setAssistantMessageComplete(true);
+                console.error('start_case error:', err);
             }
         };
         start();
@@ -134,13 +170,13 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     const handleSend = async () => {
         if (!input || !threadId || loading) return;
         const messageToSend = input;
-        const userMsg = { role: "user", text: messageToSend };
+        const userMsg = { role: "user", content: messageToSend };
         let assistantIndex: number | null = null;
         setInput("");
         setAssistantMessageComplete(false);
         setMessages((prev) => {
             assistantIndex = prev.length + 1;
-            return [...prev, userMsg, { role: "assistant", text: "" }];
+            return [...prev, userMsg, { role: "assistant", content: "" }];
         });
         setLoading(true);
         let assistantBuffer = "";
@@ -150,34 +186,37 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 "https://ukmla-case-tutor-api.onrender.com/continue_case",
                 { thread_id: threadId, user_input: messageToSend },
                 (data) => {
-                    if (data.content) {
-                        assistantBuffer += data.content;
-                        setMessages((prev) => {
-                            const updated = [...prev];
-                            if (assistantIndex! < updated.length) {
-                                updated[assistantIndex!] = { role: "assistant", text: assistantBuffer };
-                            }
-                            return updated;
-                        });
-                    }
-                    if (data.is_completed) {
-                        setCaseCompleted(true);
-                        setCaseCompletionData(data);
-                        setShowActions(true);
-                        streamingComplete = true;
-                        fetch("https://ukmla-case-tutor-api.onrender.com/save_performance", {
-                            method: "POST",
-                            headers: {
-                                Authorization: `Bearer ${accessToken}`,
-                                "X-Refresh-Token": refreshToken,
-                                "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify({
-                                thread_id: threadId,
-                                score: data.score,
-                                feedback: data.feedback,
-                            }),
-                        });
+                    if (typeof data === 'object' && data && 'content' in data) {
+                        const content = data.content;
+                        if (content) {
+                            assistantBuffer += content;
+                            setMessages((prev) => {
+                                const updated = [...prev];
+                                if (assistantIndex! < updated.length) {
+                                    updated[assistantIndex!] = { role: "assistant", content: assistantBuffer };
+                                }
+                                return updated;
+                            });
+                        }
+                        if (isCaseCompletionData(data)) {
+                            setCaseCompleted(true);
+                            setCaseCompletionData(data);
+                            setShowActions(true);
+                            streamingComplete = true;
+                            fetch("https://ukmla-case-tutor-api.onrender.com/save_performance", {
+                                method: "POST",
+                                headers: {
+                                    Authorization: `Bearer ${accessToken}`,
+                                    "X-Refresh-Token": refreshToken,
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                    thread_id: threadId,
+                                    score: data.score,
+                                    feedback: data.feedback,
+                                }),
+                            });
+                        }
                     }
                 }
             );
@@ -189,7 +228,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
             console.error("❌ continue_case error:", err);
             setMessages((prev) => [
                 ...prev,
-                { role: "system", text: "❌ Failed to send message." },
+                { role: "system", content: "❌ Failed to send message." },
             ]);
             setAssistantMessageComplete(true);
         } finally {
@@ -239,10 +278,10 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 
                 <div style={{ width: "100%", maxWidth: "800px" }}>
                     {messages
-                        .filter((msg, index) => {
+                        .filter((msg) => {
                             // If case is completed, filter out ANY message that contains case completion indicators
                             if (caseCompleted) {
-                                const text = msg.text.toLowerCase();
+                                const text = msg.content.toLowerCase();
                                 if (text.includes("[case complete]") || 
                                     text.includes("[case completed]") || 
                                     text.startsWith("{") && text.includes("case completed")) {
@@ -274,14 +313,14 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
 
                         return (
                             <div key={i} style={messageRowStyle}>
-                                <img
+                                <Image
                                     src={avatar}
                                     alt={msg.role}
-                                    width="48"
-                                    height="48"
+                                    width={48}
+                                    height={48}
                                     style={{ imageRendering: "pixelated" }}
                                 />
-                                <div style={bubbleStyle}>{msg.text}</div>
+                                <div style={bubbleStyle}>{msg.content}</div>
                             </div>
                         );
                     })}
@@ -406,7 +445,6 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             caseCompletionData={caseCompletionData}
                             onNewCaseSameCondition={handleNewCaseSameCondition}
                             onSavePerformance={handleSavePerformance}
-                            onViewProgress={() => {}}
                             onStartNewCase={handleStartNewCase}
                             navLoading={navLoading}
                         />

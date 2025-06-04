@@ -1,7 +1,6 @@
 'use client';
 
 import { motion, useAnimation } from "framer-motion";
-import { useRef } from "react";
 
 export default function SkeuoGetStartedButton({ onClick, label, disabled }: { onClick?: () => void, label: string, disabled?: boolean }) {
     const controls = useAnimation();

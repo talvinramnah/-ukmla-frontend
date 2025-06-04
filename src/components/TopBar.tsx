@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTokens } from './TokenContext';
+import Image from 'next/image';
 
 export default function TopBar() {
   const router = useRouter();
@@ -155,10 +156,12 @@ export default function TopBar() {
 
   return (
     <div style={containerStyle}>
-      <img
+      <Image
         src="https://imgur.com/yQ7R3PU.png"
         alt="Logo"
         style={logoStyle}
+        width={40}
+        height={40}
         onClick={() => router.push('/wards')}
       />
       {isMobile ? renderMobileMenu() : renderDesktopNav()}

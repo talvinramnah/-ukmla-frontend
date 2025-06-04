@@ -169,8 +169,8 @@ export default function OnboardingModal({ accessToken, onComplete }: OnboardingM
             setTimeout(() => {
                 onComplete?.();
             }, 1200);
-        } catch (err: any) {
-            setMessage(`❌ ${err.message}`);
+        } catch (err: unknown) {
+            setMessage(`❌ ${err instanceof Error ? err.message : 'An unknown error occurred'}`);
         }
     };
 

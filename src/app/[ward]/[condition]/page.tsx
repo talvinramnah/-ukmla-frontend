@@ -13,7 +13,6 @@ export default function ChatPage() {
   const [isDesktop, setIsDesktop] = useState<undefined | boolean>(undefined);
   const hasMounted = useHasMounted();
 
-  const wardParam = typeof params.ward === 'string' ? params.ward : Array.isArray(params.ward) ? params.ward[0] : '';
   const conditionParam = typeof params.condition === 'string' ? params.condition : Array.isArray(params.condition) ? params.condition[0] : '';
 
   // Redirects & screen width

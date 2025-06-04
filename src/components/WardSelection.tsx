@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from 'next/navigation';
-import { useTokens } from './TokenContext';
 import WeeklySummary from './WeeklySummary';
+import Image from 'next/image';
 
 const WARD_IMAGES: { [key: string]: string } = {
     Cardiology: "https://imgur.com/UITBIEP.png",
@@ -84,19 +83,17 @@ type WardSelectionProps = {
 };
 
 export default function WardSelection({ accessToken, refreshToken, onSelectCondition, onSelectWard, navigationMode = 'inline' }: WardSelectionProps) {
-    const [wardsData, setWardsData] = useState<any>({});
-    const [progressData, setProgressData] = useState<any>({});
+    const [wardsData, setWardsData] = useState<Record<string, string[]>>({});
+    const [progressData, setProgressData] = useState<Record<string, { total_cases: number; avg_score: number }>>({});
     const [selectedWard, setSelectedWard] = useState<string | null>(null);
     const [hoveredWard, setHoveredWard] = useState<string | null>(null);
-    const [recentCases, setRecentCases] = useState<any[]>([]);
     const [userName, setUserName] = useState<string>('Anon_name');
-    const [showRecentCases, setShowRecentCases] = useState(false);
 
     useEffect(() => {
         if (!accessToken || !refreshToken) return;
         const fetchData = async () => {
             try {
-                const [wardsRes, progressRes, sessionRes, metaRes] = await Promise.all([
+                const [wardsRes, progressRes, metaRes] = await Promise.all([
                     fetch("https://ukmla-case-tutor-api.onrender.com/wards", {
                         headers: {
                             Authorization: `Bearer ${accessToken}`,
@@ -112,13 +109,6 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                         },
                         credentials: "include",
                     }),
-                    fetch("https://ukmla-case-tutor-api.onrender.com/user/session_state", {
-                        headers: {
-                            Authorization: `Bearer ${accessToken}`,
-                            Accept: "application/json",
-                        },
-                        credentials: "include",
-                    }),
                     fetch("https://ukmla-case-tutor-api.onrender.com/user_metadata/me", {
                         headers: { Authorization: `Bearer ${accessToken}` },
                         credentials: "include",
@@ -126,12 +116,9 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                 ]);
                 const wardsData = await wardsRes.json();
                 const progressData = await progressRes.json();
-                const sessionData = await sessionRes.json();
                 const meta = await metaRes.json();
                 setWardsData(wardsData.wards);
                 setProgressData(progressData.ward_stats);
-                setRecentCases(sessionData.recent_cases || []);
-                setShowRecentCases(true);
                 if (meta.anon_username) setUserName(meta.anon_username);
             } catch (err) {
                 console.error("Error loading wards or progress:", err);
@@ -139,15 +126,6 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
         };
         fetchData();
     }, [accessToken, refreshToken]);
-
-    const formatDate = (timestamp: string) => {
-        const date = new Date(timestamp);
-        return date.toLocaleDateString(undefined, {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-        });
-    };
 
     const styles = {
         outer: {
@@ -301,29 +279,6 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
         },
     };
 
-    const handleLogout = () => {
-        // Clear tokens from localStorage
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        
-        // Navigate to auth page
-        window.location.href = '/auth';
-    };
-
-    const renderCaseHistory = () => {
-        if (!recentCases.length) return null;
-        return (
-            <div style={{ ...styles.resumeSection, maxWidth: "600px" }}>
-                <div style={styles.historyTitle}>📝️ Recent Cases</div>
-                {recentCases.slice(0, 3).map((c, i) => (
-                    <div key={i} style={styles.historyItem}>
-                        {c.condition} ({c.ward}) – {c.score}/10 – {formatDate(c.created_at)}
-                    </div>
-                ))}
-            </div>
-        );
-    };
-
     const onWardClick = (ward: string) => {
         if (navigationMode === 'route' && onSelectWard) {
             onSelectWard(ward);
@@ -373,7 +328,7 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                                         className="vcr-font"
                                     >
                                         <div style={styles.title}>{displayName}</div>
-                                        <img src={imageSrc} alt={ward} style={styles.image} />
+                                        <Image src={imageSrc} alt={ward} width={200} height={120} style={styles.image} />
                                         <div style={styles.stat}>
                                             ✅ {stats.total_cases} cases<br />
                                             📝 Avg Score: {stats.avg_score.toFixed(1)}
