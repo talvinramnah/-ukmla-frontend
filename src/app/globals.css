@@ -1,25 +1,32 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=VCR+OSD+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --color-bg: #180161;
+  --color-card: #4F1787;
+  --color-accent: #FB773C;
+  --color-accent-hover: #d77400;
+  --color-text: #ffd5a6;
+  --color-system: #FB773C;
+  --color-feedback: #00ff99;
+  --color-title: #d77400;
+  --color-border: #352753;
 }
 
 html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
+  font-family: 'Press Start 2P', monospace;
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -39,4 +46,25 @@ a {
   html {
     color-scheme: dark;
   }
+}
+
+button, input, select, textarea {
+  font-family: 'Press Start 2P', monospace;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: var(--color-card);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-accent);
+  border-radius: 4px;
+}
+
+.vcr-font {
+  font-family: 'VCR OSD Mono', 'Press Start 2P', monospace;
+}
+
+.pixel-font {
+  font-family: 'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace;
 }
