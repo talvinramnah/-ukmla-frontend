@@ -84,4 +84,3 @@ The goal is to resolve these issues so the app works on Vercel as it does locall
 - For images, Next.js requires all external domains to be listed in `next.config.js` under `images.domains`.
 - If you use environment variables for API URLs, double-check that Vercel is using the correct values.
 
----
