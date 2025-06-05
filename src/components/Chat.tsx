@@ -125,6 +125,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         setMessages([{ role: "system", content: "⏳ Loading case..." }]);
         setAssistantMessageComplete(false);
         let textBuffer = "";
+        let assistantMessageTimeout: ReturnType<typeof setTimeout> | null = null;
         const start = async () => {
             try {
                 // Decode the condition before sending to API
@@ -138,6 +139,13 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             if (content) {
                                 textBuffer += content;
                                 setMessages([{ role: "assistant", content: textBuffer }]);
+                                // Fallback: if assistantMessageComplete is not set after 1s, set it
+                                if (!assistantMessageComplete && !assistantMessageTimeout) {
+                                    assistantMessageTimeout = setTimeout(() => {
+                                        console.log("[Fallback] Setting assistantMessageComplete to true after 1s timeout");
+                                        setAssistantMessageComplete(true);
+                                    }, 1000);
+                                }
                             }
                             if (isCaseCompletionData(data)) {
                                 setCaseCompleted(true);
@@ -146,7 +154,9 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             }
                             // Check if this is the end of streaming (no more content expected)
                             if (!content) {
+                                console.log("[Streaming] Setting assistantMessageComplete to true (no more content)");
                                 setAssistantMessageComplete(true);
+                                if (assistantMessageTimeout) clearTimeout(assistantMessageTimeout);
                             }
                         }
                     },
@@ -164,6 +174,9 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
             }
         };
         start();
+        return () => {
+            if (assistantMessageTimeout) clearTimeout(assistantMessageTimeout);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [condition, accessToken, threadId]);
 
