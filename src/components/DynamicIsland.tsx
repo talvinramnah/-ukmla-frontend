@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 
-const TOP_IMAGE = 'https://i.ibb.co/fdwwHvZZ/Top-card-for-dynamic-island.png';
-const BOTTOM_IMAGE = 'https://i.ibb.co/nq8vcMfX/Bottom-image-dynamic-island.png';
+const TOP_IMAGE = 'https://iili.io/FdbD9oB.png';
+const BOTTOM_IMAGE = 'https://iili.io/FdbtptV.png';
 
 export default function DynamicIsland() {
   const [isDesktop, setIsDesktop] = useState(true);
