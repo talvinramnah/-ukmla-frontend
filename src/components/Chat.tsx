@@ -88,11 +88,11 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 if (part.startsWith("data:")) {
                     try {
                         const json = JSON.parse(part.slice(5).trim());
-                        if (typeof json === 'object' && json && 'content' in json) {
+                        if (typeof json === 'object' && json) {
                             onData(json);
                         }
                     } catch (err) {
-                        console.error("Failed to parse SSE line", err);
+                        console.error("Failed to parse SSE line", err, part);
                     }
                 }
             }
