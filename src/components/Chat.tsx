@@ -33,19 +33,8 @@ interface CaseCompletionData {
   available_actions?: string[];
 }
 
-// Add a type guard for CaseCompletionData
-function isCaseCompletionData(data: unknown): data is CaseCompletionData {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'is_completed' in data &&
-    'feedback' in data &&
-    'score' in data
-  );
-}
-
 // Add helper type guards for backend JSON message types
-function isInitialCaseMessage(data: any): boolean {
+function isInitialCaseMessage(data: unknown): data is { demographics: unknown; presenting_complaint: unknown; ice: unknown } {
   return (
     typeof data === 'object' &&
     data !== null &&
@@ -55,7 +44,7 @@ function isInitialCaseMessage(data: any): boolean {
   );
 }
 
-function isQuestionMessage(data: any): boolean {
+function isQuestionMessage(data: unknown): data is { question: unknown; attempt: unknown } {
   return (
     typeof data === 'object' &&
     data !== null &&
@@ -64,7 +53,7 @@ function isQuestionMessage(data: any): boolean {
   );
 }
 
-function isFeedbackMessage(data: any): boolean {
+function isFeedbackMessage(data: unknown): data is { result: unknown; feedback: unknown } {
   return (
     typeof data === 'object' &&
     data !== null &&
@@ -73,15 +62,15 @@ function isFeedbackMessage(data: any): boolean {
   );
 }
 
-function isStatusCompleted(data: any): boolean {
+function isStatusCompleted(data: unknown): data is { status: 'completed' } {
   return (
     typeof data === 'object' &&
     data !== null &&
-    data.status === 'completed'
+    (data as { status?: string }).status === 'completed'
   );
 }
 
-function isErrorMessage(data: any): boolean {
+function isErrorMessage(data: unknown): data is { error: unknown } {
   return (
     typeof data === 'object' &&
     data !== null &&
@@ -181,7 +170,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 await streamPost(
                     "https://ukmla-case-tutor-api.onrender.com/start_case",
                     { condition: decodedCondition },
-                    (data: any) => {
+                    (data: unknown) => {
                         // Handle all structured JSON messages
                         if (isInitialCaseMessage(data)) {
                           appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
@@ -231,7 +220,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
             await streamPost(
                 "https://ukmla-case-tutor-api.onrender.com/continue_case",
                 { thread_id: threadId, user_input: messageToSend },
-                (data: any) => {
+                (data: unknown) => {
                   if (isQuestionMessage(data)) {
                     appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
                   } else if (isFeedbackMessage(data)) {
@@ -297,7 +286,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 
                 <div style={{ width: "100%", maxWidth: "800px" }}>
                     {messages
-                        .filter((msg) => {
+                        .filter((msg: Message) => {
                             // If case is completed, filter out ANY message that contains case completion indicators
                             if (caseCompleted) {
                                 const text = msg.content.toLowerCase();
