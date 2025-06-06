@@ -163,7 +163,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         if (!condition || !accessToken || threadId) return;
         setMessages([{ role: "system", content: "⏳ Loading case..." }]);
         setAssistantMessageComplete(false);
-        let assistantMessageTimeout: ReturnType<typeof setTimeout> | null = null;
+        const assistantMessageTimeout: ReturnType<typeof setTimeout> | null = null;
         const start = async () => {
             try {
                 const decodedCondition = decodeURIComponent(condition);
