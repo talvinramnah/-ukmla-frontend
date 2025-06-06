@@ -44,6 +44,51 @@ function isCaseCompletionData(data: unknown): data is CaseCompletionData {
   );
 }
 
+// Add helper type guards for backend JSON message types
+function isInitialCaseMessage(data: any): boolean {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'demographics' in data &&
+    'presenting_complaint' in data &&
+    'ice' in data
+  );
+}
+
+function isQuestionMessage(data: any): boolean {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'question' in data &&
+    'attempt' in data
+  );
+}
+
+function isFeedbackMessage(data: any): boolean {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'result' in data &&
+    'feedback' in data
+  );
+}
+
+function isStatusCompleted(data: any): boolean {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    data.status === 'completed'
+  );
+}
+
+function isErrorMessage(data: any): boolean {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'error' in data
+  );
+}
+
 export default function Chat({ condition, accessToken, refreshToken, leftAlignTitle, onCaseComplete }: ChatProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
@@ -119,45 +164,38 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         }
     };
 
-    // Effect to start a new case
+    // Helper to add a message to the chat
+    const appendMessage = (msg: Message) => {
+      setMessages((prev: Message[]) => [...prev, msg]);
+    };
+
+    // Refactored streamPost handler for /start_case
     useEffect(() => {
         if (!condition || !accessToken || threadId) return;
         setMessages([{ role: "system", content: "⏳ Loading case..." }]);
         setAssistantMessageComplete(false);
-        let textBuffer = "";
         let assistantMessageTimeout: ReturnType<typeof setTimeout> | null = null;
         const start = async () => {
             try {
-                // Decode the condition before sending to API
                 const decodedCondition = decodeURIComponent(condition);
                 await streamPost(
                     "https://ukmla-case-tutor-api.onrender.com/start_case",
                     { condition: decodedCondition },
-                    (data) => {
-                        if (typeof data === 'object' && data && 'content' in data) {
-                            const content = data.content;
-                            if (content) {
-                                textBuffer += content;
-                                setMessages([{ role: "assistant", content: textBuffer }]);
-                                // Fallback: if assistantMessageComplete is not set after 1s, set it
-                                if (!assistantMessageComplete && !assistantMessageTimeout) {
-                                    assistantMessageTimeout = setTimeout(() => {
-                                        console.log("[Fallback] Setting assistantMessageComplete to true after 1s timeout");
-                                        setAssistantMessageComplete(true);
-                                    }, 1000);
-                                }
-                            }
-                            if (isCaseCompletionData(data)) {
-                                setCaseCompleted(true);
-                                setCaseCompletionData(data);
-                                setShowActions(true);
-                            }
-                            // Check if this is the end of streaming (no more content expected)
-                            if (!content) {
-                                console.log("[Streaming] Setting assistantMessageComplete to true (no more content)");
-                                setAssistantMessageComplete(true);
-                                if (assistantMessageTimeout) clearTimeout(assistantMessageTimeout);
-                            }
+                    (data: any) => {
+                        // Handle all structured JSON messages
+                        if (isInitialCaseMessage(data)) {
+                          appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                        } else if (isQuestionMessage(data)) {
+                          appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                        } else if (isFeedbackMessage(data)) {
+                          appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                        } else if (isStatusCompleted(data)) {
+                          setAssistantMessageComplete(true);
+                          setCaseCompleted(true);
+                          setShowActions(true);
+                          if (onCaseComplete) onCaseComplete();
+                        } else if (isErrorMessage(data)) {
+                          appendMessage({ role: "system", content: JSON.stringify(data.error) });
                         }
                     },
                     (headers) => {
@@ -180,70 +218,38 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [condition, accessToken, threadId]);
 
+    // Refactor handleSend to handle all structured JSON messages for /continue_case
     const handleSend = async () => {
         if (!input || !threadId || loading) return;
         const messageToSend = input;
         const userMsg = { role: "user", content: messageToSend };
-        let assistantIndex: number | null = null;
         setInput("");
         setAssistantMessageComplete(false);
-        setMessages((prev) => {
-            assistantIndex = prev.length + 1;
-            return [...prev, userMsg, { role: "assistant", content: "" }];
-        });
+        appendMessage(userMsg);
         setLoading(true);
-        let assistantBuffer = "";
-        let streamingComplete = false;
         try {
             await streamPost(
                 "https://ukmla-case-tutor-api.onrender.com/continue_case",
                 { thread_id: threadId, user_input: messageToSend },
-                (data) => {
-                    if (typeof data === 'object' && data && 'content' in data) {
-                        const content = data.content;
-                        if (content) {
-                            assistantBuffer += content;
-                            setMessages((prev) => {
-                                const updated = [...prev];
-                                if (assistantIndex! < updated.length) {
-                                    updated[assistantIndex!] = { role: "assistant", content: assistantBuffer };
-                                }
-                                return updated;
-                            });
-                        }
-                        if (isCaseCompletionData(data)) {
-                            setCaseCompleted(true);
-                            setCaseCompletionData(data);
-                            setShowActions(true);
-                            streamingComplete = true;
-                            fetch("https://ukmla-case-tutor-api.onrender.com/save_performance", {
-                                method: "POST",
-                                headers: {
-                                    Authorization: `Bearer ${accessToken}`,
-                                    "X-Refresh-Token": refreshToken,
-                                    "Content-Type": "application/json",
-                                },
-                                body: JSON.stringify({
-                                    thread_id: threadId,
-                                    score: data.score,
-                                    feedback: data.feedback,
-                                }),
-                            });
-                        }
-                    }
+                (data: any) => {
+                  if (isQuestionMessage(data)) {
+                    appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                  } else if (isFeedbackMessage(data)) {
+                    appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                  } else if (isStatusCompleted(data)) {
+                    setAssistantMessageComplete(true);
+                    setCaseCompleted(true);
+                    setShowActions(true);
+                    if (onCaseComplete) onCaseComplete();
+                  } else if (isErrorMessage(data)) {
+                    appendMessage({ role: "system", content: JSON.stringify(data.error) });
+                  }
                 }
             );
-            // If case is not completed, set assistant message as complete after streaming
-            if (!streamingComplete) {
-                setAssistantMessageComplete(true);
-            }
         } catch (err) {
-            console.error("❌ continue_case error:", err);
-            setMessages((prev) => [
-                ...prev,
-                { role: "system", content: "❌ Failed to send message." },
-            ]);
+            appendMessage({ role: "system", content: "❌ Failed to continue case." });
             setAssistantMessageComplete(true);
+            console.error('continue_case error:', err);
         } finally {
             setLoading(false);
         }
@@ -303,7 +309,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             }
                             return true;
                         })
-                        .map((msg, i) => {
+                        .map((msg: Message, idx: number) => {
                         const avatar = msg.role === "user" ? studentImg : doctorImg;
                         const messageRowStyle: React.CSSProperties = {
                             display: "flex",
@@ -325,7 +331,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         };
 
                         return (
-                            <div key={i} style={messageRowStyle}>
+                            <div key={idx} style={messageRowStyle}>
                                 <Image
                                     src={avatar}
                                     alt={msg.role}
@@ -333,7 +339,18 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                                     height={48}
                                     style={{ imageRendering: "pixelated" }}
                                 />
-                                <div style={bubbleStyle}>{msg.content}</div>
+                                <div style={bubbleStyle}>
+                                    {(() => {
+                                        try {
+                                            // Try to parse as JSON for pretty display
+                                            const parsed = JSON.parse(msg.content);
+                                            return <pre>{JSON.stringify(parsed, null, 2)}</pre>;
+                                        } catch {
+                                            // Fallback to plain text
+                                            return <span>{msg.content}</span>;
+                                        }
+                                    })()}
+                                </div>
                             </div>
                         );
                     })}
