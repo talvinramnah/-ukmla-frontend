@@ -78,6 +78,55 @@ function isErrorMessage(data: unknown): data is { error: unknown } {
   );
 }
 
+// Add this function above the Chat component
+function renderMessage(msg: Message) {
+  try {
+    const data = JSON.parse(msg.content);
+    // Demographics/Initial Case
+    if ('demographics' in data && 'presenting_complaint' in data) {
+      return (
+        <div>
+          <strong>Patient: {data.demographics.name}, Age: {data.demographics.age}</strong>
+          <div><b>History:</b> {data.presenting_complaint.history}</div>
+          <div><b>Medical History:</b> {data.presenting_complaint.medical_history}</div>
+          <div><b>Drug History:</b> {data.presenting_complaint.drug_history}</div>
+          <div><b>Family History:</b> {data.presenting_complaint.family_history}</div>
+          <div><b>Ideas/Concerns/Expectations:</b> {data.ice.ideas} / {data.ice.concerns} / {data.ice.expectations}</div>
+        </div>
+      );
+    }
+    // Question
+    if ('question' in data) {
+      return (
+        <div>
+          <b>Question:</b> {data.question}
+          {data.assistant_feedback && data.assistant_feedback.length > 0 && (
+            <div><i>Hint: {data.assistant_feedback}</i></div>
+          )}
+        </div>
+      );
+    }
+    // Feedback/Score
+    if ('feedback' in data && 'score' in data) {
+      return (
+        <div>
+          <b>Feedback:</b> {data.feedback}
+          <div><b>Score:</b> {data.score}/10</div>
+        </div>
+      );
+    }
+    // Status
+    if ('status' in data && data.status === 'completed') {
+      return <b>Case Completed!</b>;
+    }
+    // Fallback: show as JSON
+    return <pre>{JSON.stringify(data, null, 2)}</pre>;
+  } catch {
+    // Not JSON, fallback to plain text
+    return <span>{msg.content}</span>;
+  }
+}
+
 export default function Chat({ condition, accessToken, refreshToken, leftAlignTitle, onCaseComplete }: ChatProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
@@ -329,16 +378,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                                     style={{ imageRendering: "pixelated" }}
                                 />
                                 <div style={bubbleStyle}>
-                                    {(() => {
-                                        try {
-                                            // Try to parse as JSON for pretty display
-                                            const parsed = JSON.parse(msg.content);
-                                            return <pre>{JSON.stringify(parsed, null, 2)}</pre>;
-                                        } catch {
-                                            // Fallback to plain text
-                                            return <span>{msg.content}</span>;
-                                        }
-                                    })()}
+                                    {renderMessage(msg)}
                                 </div>
                             </div>
                         );
