@@ -78,6 +78,14 @@ function isErrorMessage(data: unknown): data is { error: unknown } {
   );
 }
 
+function isStreamingProgress(data: unknown): data is { streaming: unknown } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'streaming' in data
+  );
+}
+
 // Add this function above the Chat component
 function renderMessage(msg: Message) {
   try {
@@ -228,34 +236,44 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     "https://ukmla-case-tutor-api.onrender.com/start_case",
                     { condition: decodedCondition },
                     (data: unknown) => {
-                        // Clear loading message on first real message
-                        if (!firstMessageReceived) {
-                            setMessages([]);
-                            firstMessageReceived = true;
-                        }
-                        
-                        // Handle all structured JSON messages
-                        if (isInitialCaseMessage(data)) {
-                          appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
-                        } else if (isQuestionMessage(data)) {
-                          appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
-                          setAssistantMessageComplete(true); // Enable input box immediately after question
-                        } else if (isFeedbackMessage(data)) {
-                          appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
-                          // Extract case completion data from feedback message
-                          setCaseCompletionData({
-                            is_completed: true,
-                            feedback: typeof data.feedback === 'string' ? data.feedback : JSON.stringify(data.feedback),
-                            score: typeof data.score === 'number' ? data.score : 0,
-                          });
-                        } else if (isStatusCompleted(data)) {
-                          setAssistantMessageComplete(true);
-                          setCaseCompleted(true);
-                          setShowActions(true);
-                          if (onCaseComplete) onCaseComplete();
-                        } else if (isErrorMessage(data)) {
-                          appendMessage({ role: "system", content: JSON.stringify({ error: data.error }) });
-                          setAssistantMessageComplete(true); // Allow user to try again
+                        if (data) {
+                            // Clear loading message when first real message is received
+                            if (!firstMessageReceived && !isStreamingProgress(data)) {
+                                setMessages([]);
+                                firstMessageReceived = true;
+                            }
+
+                            // Handle different types of messages
+                            if (isInitialCaseMessage(data)) {
+                                appendMessage({ role: 'assistant', content: JSON.stringify(data) });
+                            } else if (isQuestionMessage(data)) {
+                                appendMessage({ role: 'assistant', content: JSON.stringify(data) });
+                                setAssistantMessageComplete(true);
+                            } else if (isFeedbackMessage(data)) {
+                                appendMessage({ role: 'assistant', content: JSON.stringify(data) });
+                                setCaseCompletionData({
+                                    is_completed: true,
+                                    feedback: data.feedback || 'No feedback provided',
+                                    score: data.score || 0,
+                                    thread_metadata: undefined,
+                                    next_case_variation: undefined,
+                                    available_actions: ['new_case_same_condition', 'start_new_case', 'save_performance']
+                                });
+                                setCaseCompleted(true);
+                                setShowActions(true);
+                            } else if (isStatusCompleted(data)) {
+                                // Status completed - case is finished
+                                setCaseCompleted(true);
+                                setShowActions(true);
+                            } else if (isErrorMessage(data)) {
+                                appendMessage({ role: 'assistant', content: JSON.stringify(data) });
+                            } else if (isStreamingProgress(data)) {
+                                // Ignore streaming progress indicators - they're just for UX feedback
+                                // Don't append to messages, just continue
+                            } else {
+                                // Fallback for any other message type
+                                appendMessage({ role: 'assistant', content: JSON.stringify(data) });
+                            }
                         }
                     },
                     (headers) => {
