@@ -223,10 +223,17 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         const start = async () => {
             try {
                 const decodedCondition = decodeURIComponent(condition);
+                let firstMessageReceived = false;
                 await streamPost(
                     "https://ukmla-case-tutor-api.onrender.com/start_case",
                     { condition: decodedCondition },
                     (data: unknown) => {
+                        // Clear loading message on first real message
+                        if (!firstMessageReceived) {
+                            setMessages([]);
+                            firstMessageReceived = true;
+                        }
+                        
                         // Handle all structured JSON messages
                         if (isInitialCaseMessage(data)) {
                           appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
