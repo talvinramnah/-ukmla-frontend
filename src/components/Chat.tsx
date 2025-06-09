@@ -253,8 +253,8 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                                 appendMessage({ role: 'assistant', content: JSON.stringify(data) });
                                 setCaseCompletionData({
                                     is_completed: true,
-                                    feedback: data.feedback || 'No feedback provided',
-                                    score: data.score || 0,
+                                    feedback: typeof data.feedback === 'string' ? data.feedback : 'No feedback provided',
+                                    score: typeof data.score === 'number' ? data.score : 0,
                                     thread_metadata: undefined,
                                     next_case_variation: undefined,
                                     available_actions: ['new_case_same_condition', 'start_new_case', 'save_performance']
@@ -315,7 +315,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     // Extract case completion data from feedback message
                     setCaseCompletionData({
                       is_completed: true,
-                      feedback: typeof data.feedback === 'string' ? data.feedback : JSON.stringify(data.feedback),
+                      feedback: typeof data.feedback === 'string' ? data.feedback : 'No feedback provided',
                       score: typeof data.score === 'number' ? data.score : 0,
                     });
                   } else if (isStatusCompleted(data)) {
@@ -514,8 +514,8 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             type="text"
                             placeholder="Type your answer..."
                             value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => {
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
+                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                                 if (e.key === "Enter") {
                                     e.preventDefault();
                                     handleSend();
