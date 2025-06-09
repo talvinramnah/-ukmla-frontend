@@ -65,15 +65,26 @@ function isFeedbackMessage(data: unknown): data is {
     actionable_points: string[];
   }
 } {
+  if (typeof data !== 'object' || data === null) {
+    return false;
+  }
+  
+  const obj = data as Record<string, unknown>;
+  
+  if (!('result' in obj) || !('feedback' in obj)) {
+    return false;
+  }
+  
+  if (typeof obj.feedback !== 'object' || obj.feedback === null) {
+    return false;
+  }
+  
+  const feedback = obj.feedback as Record<string, unknown>;
+  
   return (
-    typeof data === 'object' &&
-    data !== null &&
-    'result' in data &&
-    'feedback' in data &&
-    typeof (data as any).feedback === 'object' &&
-    'what_went_well' in (data as any).feedback &&
-    'what_can_be_improved' in (data as any).feedback &&
-    'actionable_points' in (data as any).feedback
+    'what_went_well' in feedback &&
+    'what_can_be_improved' in feedback &&
+    'actionable_points' in feedback
   );
 }
 
