@@ -53,7 +53,7 @@ function isQuestionMessage(data: unknown): data is { question: unknown; attempt:
   );
 }
 
-function isFeedbackMessage(data: unknown): data is { result: unknown; feedback: unknown } {
+function isFeedbackMessage(data: unknown): data is { result: unknown; feedback: unknown; score?: unknown } {
   return (
     typeof data === 'object' &&
     data !== null &&
@@ -118,6 +118,14 @@ function renderMessage(msg: Message) {
     // Status
     if ('status' in data && data.status === 'completed') {
       return <b>Case Completed!</b>;
+    }
+    // Error messages
+    if ('error' in data) {
+      return (
+        <div style={{ color: '#ff6b6b', backgroundColor: 'rgba(255, 107, 107, 0.1)', padding: '8px', borderRadius: '4px' }}>
+          <b>Error:</b> {typeof data.error === 'string' ? data.error : JSON.stringify(data.error)}
+        </div>
+      );
     }
     // Fallback: show as JSON
     return <pre>{JSON.stringify(data, null, 2)}</pre>;
@@ -212,7 +220,6 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         if (!condition || !accessToken || threadId) return;
         setMessages([{ role: "system", content: "⏳ Loading case..." }]);
         setAssistantMessageComplete(false);
-        const assistantMessageTimeout: ReturnType<typeof setTimeout> | null = null;
         const start = async () => {
             try {
                 const decodedCondition = decodeURIComponent(condition);
@@ -225,15 +232,23 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                           appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
                         } else if (isQuestionMessage(data)) {
                           appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                          setAssistantMessageComplete(true); // Enable input box immediately after question
                         } else if (isFeedbackMessage(data)) {
                           appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                          // Extract case completion data from feedback message
+                          setCaseCompletionData({
+                            is_completed: true,
+                            feedback: typeof data.feedback === 'string' ? data.feedback : JSON.stringify(data.feedback),
+                            score: typeof data.score === 'number' ? data.score : 0,
+                          });
                         } else if (isStatusCompleted(data)) {
                           setAssistantMessageComplete(true);
                           setCaseCompleted(true);
                           setShowActions(true);
                           if (onCaseComplete) onCaseComplete();
                         } else if (isErrorMessage(data)) {
-                          appendMessage({ role: "system", content: JSON.stringify(data.error) });
+                          appendMessage({ role: "system", content: JSON.stringify({ error: data.error }) });
+                          setAssistantMessageComplete(true); // Allow user to try again
                         }
                     },
                     (headers) => {
@@ -250,9 +265,6 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
             }
         };
         start();
-        return () => {
-            if (assistantMessageTimeout) clearTimeout(assistantMessageTimeout);
-        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [condition, accessToken, threadId]);
 
@@ -272,15 +284,23 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 (data: unknown) => {
                   if (isQuestionMessage(data)) {
                     appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                    setAssistantMessageComplete(true); // Enable input box immediately after question
                   } else if (isFeedbackMessage(data)) {
                     appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                    // Extract case completion data from feedback message
+                    setCaseCompletionData({
+                      is_completed: true,
+                      feedback: typeof data.feedback === 'string' ? data.feedback : JSON.stringify(data.feedback),
+                      score: typeof data.score === 'number' ? data.score : 0,
+                    });
                   } else if (isStatusCompleted(data)) {
                     setAssistantMessageComplete(true);
                     setCaseCompleted(true);
                     setShowActions(true);
                     if (onCaseComplete) onCaseComplete();
                   } else if (isErrorMessage(data)) {
-                    appendMessage({ role: "system", content: JSON.stringify(data.error) });
+                    appendMessage({ role: "system", content: JSON.stringify({ error: data.error }) });
+                    setAssistantMessageComplete(true); // Allow user to try again
                   }
                 }
             );
@@ -338,11 +358,19 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         .filter((msg: Message) => {
                             // If case is completed, filter out ANY message that contains case completion indicators
                             if (caseCompleted) {
-                                const text = msg.content.toLowerCase();
-                                if (text.includes("[case complete]") || 
-                                    text.includes("[case completed]") || 
-                                    text.startsWith("{") && text.includes("case completed")) {
-                                    return false;
+                                try {
+                                    const data = JSON.parse(msg.content);
+                                    // Filter out status: completed messages when case is done
+                                    if (data.status === 'completed') {
+                                        return false;
+                                    }
+                                } catch {
+                                    // For non-JSON messages, check text content
+                                    const text = msg.content.toLowerCase();
+                                    if (text.includes("[case complete]") || 
+                                        text.includes("[case completed]")) {
+                                        return false;
+                                    }
                                 }
                             }
                             return true;
