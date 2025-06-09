@@ -22,8 +22,12 @@ interface Message {
 
 interface CaseCompletionData {
   is_completed: boolean;
-  feedback: string;
-  score: number;
+  result: 'pass' | 'fail';
+  feedback: {
+    what_went_well: { management: string; investigation: string; other: string };
+    what_can_be_improved: { management: string; investigation: string; other: string };
+    actionable_points: string[];
+  };
   thread_metadata?: {
     condition: string;
     ward: string;
@@ -53,12 +57,23 @@ function isQuestionMessage(data: unknown): data is { question: unknown; attempt:
   );
 }
 
-function isFeedbackMessage(data: unknown): data is { result: unknown; feedback: unknown; score?: unknown } {
+function isFeedbackMessage(data: unknown): data is { 
+  result: 'pass' | 'fail'; 
+  feedback: {
+    what_went_well: { management: string; investigation: string; other: string };
+    what_can_be_improved: { management: string; investigation: string; other: string };
+    actionable_points: string[];
+  }
+} {
   return (
     typeof data === 'object' &&
     data !== null &&
     'result' in data &&
-    'feedback' in data
+    'feedback' in data &&
+    typeof (data as any).feedback === 'object' &&
+    'what_went_well' in (data as any).feedback &&
+    'what_can_be_improved' in (data as any).feedback &&
+    'actionable_points' in (data as any).feedback
   );
 }
 
@@ -114,14 +129,9 @@ function renderMessage(msg: Message) {
         </div>
       );
     }
-    // Feedback/Score
-    if ('feedback' in data && 'score' in data) {
-      return (
-        <div>
-          <b>Feedback:</b> {data.feedback}
-          <div><b>Score:</b> {data.score}/10</div>
-        </div>
-      );
+    // New structured feedback - don't render in chat, will be handled by feedback card
+    if (isFeedbackMessage(data)) {
+      return null; // Don't render feedback messages in chat
     }
     // Status
     if ('status' in data && data.status === 'completed') {
@@ -250,11 +260,11 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                                 appendMessage({ role: 'assistant', content: JSON.stringify(data) });
                                 setAssistantMessageComplete(true);
                             } else if (isFeedbackMessage(data)) {
-                                appendMessage({ role: 'assistant', content: JSON.stringify(data) });
+                                // Don't append feedback message to chat - it will be shown in the feedback card
                                 setCaseCompletionData({
                                     is_completed: true,
-                                    feedback: typeof data.feedback === 'string' ? data.feedback : 'No feedback provided',
-                                    score: typeof data.score === 'number' ? data.score : 0,
+                                    result: data.result,
+                                    feedback: data.feedback,
                                     thread_metadata: undefined,
                                     next_case_variation: undefined,
                                     available_actions: ['new_case_same_condition', 'start_new_case', 'save_performance']
@@ -311,13 +321,14 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
                     setAssistantMessageComplete(true); // Enable input box immediately after question
                   } else if (isFeedbackMessage(data)) {
-                    appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
-                    // Extract case completion data from feedback message
+                    // Don't append feedback message to chat - it will be shown in the feedback card
                     setCaseCompletionData({
                       is_completed: true,
-                      feedback: typeof data.feedback === 'string' ? data.feedback : 'No feedback provided',
-                      score: typeof data.score === 'number' ? data.score : 0,
+                      result: data.result,
+                      feedback: data.feedback,
                     });
+                    setCaseCompleted(true);
+                    setShowActions(true);
                   } else if (isStatusCompleted(data)) {
                     setAssistantMessageComplete(true);
                     setCaseCompleted(true);
@@ -438,22 +449,22 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     })}
                 </div>
                 
-                {/* Structured Feedback Card */}
+                {/* Updated Structured Feedback Card */}
                 {caseCompleted && caseCompletionData && (
                     <div style={{
-                        backgroundColor: "var(--color-card)",
+                        backgroundColor: "#000",
                         borderRadius: "16px",
                         padding: "20px",
                         marginBottom: "24px",
                         boxShadow: "0 0 12px rgba(0,0,0,0.5)",
-                        border: "2px solid var(--color-accent)",
+                        border: "2px solid #d77400",
                         textAlign: "center"
                     }}>
                         <div style={{
                             fontSize: "24px",
-                            color: "var(--color-title)",
+                            color: "#ffd5a6",
                             marginBottom: "16px",
-                            fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
+                            fontFamily: "VT323",
                             fontWeight: "bold"
                         }}>
                             📋 Case Complete
@@ -464,41 +475,94 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             justifyContent: "center",
                             alignItems: "center",
                             gap: "20px",
-                            marginBottom: "16px",
+                            marginBottom: "20px",
                             flexWrap: "wrap"
                         }}>
                             <div style={{
-                                backgroundColor: "var(--color-accent)",
+                                backgroundColor: caseCompletionData.result === 'pass' ? "#4CAF50" : "#f44336",
                                 color: "#fff",
                                 padding: "12px 20px",
                                 borderRadius: "8px",
                                 fontSize: "20px",
-                                fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
+                                fontFamily: "VT323",
                                 fontWeight: "bold"
                             }}>
-                                ✅ Score: {caseCompletionData.score}/10
+                                {caseCompletionData.result === 'pass' ? "✅ PASS" : "❌ FAIL"}
                             </div>
                         </div>
                         
+                        {/* What Went Well Section */}
                         <div style={{
-                            backgroundColor: "rgba(0,0,0,0.3)",
+                            backgroundColor: "rgba(76, 175, 80, 0.1)",
+                            border: "1px solid #4CAF50",
                             padding: "16px",
                             borderRadius: "8px",
-                            fontSize: "18px",
-                            color: "var(--color-text)",
-                            fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
-                            lineHeight: "1.4",
+                            marginBottom: "16px",
                             textAlign: "left"
                         }}>
                             <div style={{ 
-                                fontSize: "20px", 
-                                color: "var(--color-accent)", 
-                                marginBottom: "8px",
-                                fontWeight: "bold"
+                                fontSize: "18px", 
+                                color: "#4CAF50", 
+                                marginBottom: "12px",
+                                fontWeight: "bold",
+                                fontFamily: "VT323"
                             }}>
-                                📝 Feedback:
+                                ✅ What Went Well:
                             </div>
-                            {caseCompletionData.feedback}
+                            <ul style={{ margin: 0, paddingLeft: "20px", color: "#ffd5a6", fontFamily: "VT323", fontSize: "16px" }}>
+                                <li style={{ marginBottom: "8px" }}><strong>Management:</strong> {caseCompletionData.feedback.what_went_well.management}</li>
+                                <li style={{ marginBottom: "8px" }}><strong>Investigation:</strong> {caseCompletionData.feedback.what_went_well.investigation}</li>
+                                <li style={{ marginBottom: "8px" }}><strong>Other:</strong> {caseCompletionData.feedback.what_went_well.other}</li>
+                            </ul>
+                        </div>
+
+                        {/* What Can Be Improved Section */}
+                        <div style={{
+                            backgroundColor: "rgba(255, 193, 7, 0.1)",
+                            border: "1px solid #FFC107",
+                            padding: "16px",
+                            borderRadius: "8px",
+                            marginBottom: "16px",
+                            textAlign: "left"
+                        }}>
+                            <div style={{ 
+                                fontSize: "18px", 
+                                color: "#FFC107", 
+                                marginBottom: "12px",
+                                fontWeight: "bold",
+                                fontFamily: "VT323"
+                            }}>
+                                🔄 What Can Be Improved:
+                            </div>
+                            <ul style={{ margin: 0, paddingLeft: "20px", color: "#ffd5a6", fontFamily: "VT323", fontSize: "16px" }}>
+                                <li style={{ marginBottom: "8px" }}><strong>Management:</strong> {caseCompletionData.feedback.what_can_be_improved.management}</li>
+                                <li style={{ marginBottom: "8px" }}><strong>Investigation:</strong> {caseCompletionData.feedback.what_can_be_improved.investigation}</li>
+                                <li style={{ marginBottom: "8px" }}><strong>Other:</strong> {caseCompletionData.feedback.what_can_be_improved.other}</li>
+                            </ul>
+                        </div>
+
+                        {/* Actionable Points Section */}
+                        <div style={{
+                            backgroundColor: "rgba(33, 150, 243, 0.1)",
+                            border: "1px solid #2196F3",
+                            padding: "16px",
+                            borderRadius: "8px",
+                            textAlign: "left"
+                        }}>
+                            <div style={{ 
+                                fontSize: "18px", 
+                                color: "#2196F3", 
+                                marginBottom: "12px",
+                                fontWeight: "bold",
+                                fontFamily: "VT323"
+                            }}>
+                                🎯 Action Points:
+                            </div>
+                            <ul style={{ margin: 0, paddingLeft: "20px", color: "#ffd5a6", fontFamily: "VT323", fontSize: "16px" }}>
+                                {caseCompletionData.feedback.actionable_points.map((point, index) => (
+                                    <li key={index} style={{ marginBottom: "8px" }}>{point}</li>
+                                ))}
+                            </ul>
                         </div>
                     </div>
                 )}
