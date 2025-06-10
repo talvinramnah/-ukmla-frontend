@@ -233,7 +233,7 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
       marginBottom: "12px",
     },
     stats: {
-      fontSize: "8px",
+      fontSize: "16px",
       color: "var(--color-text)",
       marginTop: "6px",
       wordBreak: "break-word" as const,
