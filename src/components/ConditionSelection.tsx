@@ -47,6 +47,7 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
   const [conditions, setConditions] = useState<string[]>([]);
   const [conditionStats, setConditionStats] = useState<Record<string, ConditionStats>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [hoveredCondition, setHoveredCondition] = useState<string | null>(null);
   const router = useRouter();
 
@@ -80,11 +81,6 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
 
             const stats: Record<string, ConditionStats> = {};
             
-            // Initialize all conditions with zero stats
-            wardConditions.forEach(condition => {
-              stats[condition] = { total_cases: 0, avg_score: 0.0 };
-            });
-
             if (progressRes.ok) {
               const progressData = await progressRes.json();
               console.log('📊 Progress API Response:', progressData);
@@ -92,6 +88,13 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
               // Check if there's condition-level data in the response
               if (progressData.condition_stats) {
                 console.log('✅ Found condition-level stats in API response');
+                
+                // Initialize all conditions with zero stats first
+                wardConditions.forEach(condition => {
+                  stats[condition] = { total_cases: 0, avg_score: 0.0 };
+                });
+                
+                // Update with actual data where available
                 Object.entries(progressData.condition_stats).forEach(([condition, conditionData]) => {
                   if (wardConditions.includes(condition)) {
                     const data = conditionData as ConditionData;
@@ -101,67 +104,27 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
                     };
                   }
                 });
-              } else {
-                console.log('⚠️ No condition-level stats found, using ward-level fallback');
                 
-                // More sophisticated fallback: Use ward-level stats with some variation
-                const wardStats = progressData.ward_stats?.[ward];
-                if (wardStats && wardStats.total_cases > 0) {
-                  console.log(`📈 Ward stats for ${ward}:`, wardStats);
-                  
-                  // Distribute ward stats across conditions with some realistic variation
-                  wardConditions.forEach((condition, index) => {
-                    // Add some variation based on condition index to make it look more realistic
-                    const variation = 0.8 + (index * 0.1) % 0.4; // Variation between 0.8 and 1.2
-                    const casesPerCondition = Math.max(1, Math.floor((wardStats.total_cases / wardConditions.length) * variation));
-                    const scoreVariation = 0.9 + (index * 0.05) % 0.2; // Score variation between 0.9 and 1.1
-                    const adjustedScore = Math.min(10, Math.max(0, wardStats.avg_score * scoreVariation));
-                    
-                    stats[condition] = {
-                      total_cases: casesPerCondition,
-                      avg_score: Math.round(adjustedScore * 10) / 10 // Round to 1 decimal place
-                    };
-                  });
-                } else {
-                  console.log('⚠️ No ward stats available, using minimal fallback data');
-                  // Minimal fallback: Give each condition at least 1 case with a reasonable score
-                  wardConditions.forEach((condition, index) => {
-                    stats[condition] = {
-                      total_cases: 1 + (index % 3), // 1-3 cases per condition
-                      avg_score: 6.5 + (index * 0.3) % 2.5 // Scores between 6.5 and 9.0
-                    };
-                  });
-                }
+                console.log('📋 Final condition stats:', stats);
+                setConditionStats(stats);
+              } else {
+                console.error('❌ No condition-level stats found in API response');
+                throw new Error('Condition-level statistics not available from API');
               }
             } else {
               console.error('❌ Progress API failed:', progressRes.status, progressRes.statusText);
-              // Fallback to minimal demo data
-              wardConditions.forEach((condition, index) => {
-                stats[condition] = {
-                  total_cases: 1 + (index % 4),
-                  avg_score: 7.0 + (index * 0.2) % 2.0
-                };
-              });
+              throw new Error(`API request failed with status ${progressRes.status}`);
             }
-            
-            console.log('📋 Final condition stats:', stats);
-            setConditionStats(stats);
           } catch (performanceErr) {
             console.error('💥 Error fetching performance data:', performanceErr);
-            // Fall back to demo stats if everything fails
-            const fallbackStats: Record<string, ConditionStats> = {};
-            wardConditions.forEach((condition, index) => {
-              fallbackStats[condition] = { 
-                total_cases: 2 + (index % 3), 
-                avg_score: 7.5 + (index * 0.1) % 1.5 
-              };
-            });
-            console.log('🔄 Using fallback stats:', fallbackStats);
-            setConditionStats(fallbackStats);
+            // Don't set any stats - this will trigger the error display in the UI
+            setConditionStats({});
+            setError(performanceErr instanceof Error ? performanceErr.message : 'Failed to fetch performance data');
           }
         }
       } catch (err) {
         console.error('Error fetching conditions and stats:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch conditions');
       } finally {
         setLoading(false);
       }
@@ -183,6 +146,42 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
         justifyContent: 'center'
       }}>
         Loading conditions...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ 
+        color: '#ff6b6b', 
+        fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace", 
+        padding: 32,
+        textAlign: 'center',
+        minHeight: '50vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16
+      }}>
+        <div style={{ fontSize: '16px', marginBottom: 8 }}>❌ Error Loading Performance Data</div>
+        <div style={{ fontSize: '12px', maxWidth: '600px', lineHeight: 1.4 }}>{error}</div>
+        <button
+          onClick={() => window.location.reload()}
+          style={{
+            background: '#d77400',
+            border: '2px solid #000',
+            padding: '8px 16px',
+            borderRadius: 10,
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: 12,
+            fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
+            marginTop: 16
+          }}
+        >
+          Retry
+        </button>
       </div>
     );
   }

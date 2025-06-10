@@ -37,6 +37,22 @@ interface CaseCompletionData {
   available_actions?: string[];
 }
 
+// Add new type definitions for the free text streaming format
+interface TextChunkMessage {
+  type: 'text_chunk';
+  content: string;
+}
+
+interface CompletedMessage {
+  type: 'completed';
+  full_text: string;
+}
+
+interface ErrorMessage {
+  type: 'error';
+  message: string;
+}
+
 // Add helper type guards for backend JSON message types
 function isInitialCaseMessage(data: unknown): data is { demographics: unknown; presenting_complaint: unknown; ice: unknown } {
   return (
@@ -96,14 +112,6 @@ function isStatusCompleted(data: unknown): data is { status: 'completed' } {
   );
 }
 
-function isErrorMessage(data: unknown): data is { error: unknown } {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'error' in data
-  );
-}
-
 function isStreamingProgress(data: unknown): data is { streaming: unknown } {
   return (
     typeof data === 'object' &&
@@ -112,11 +120,34 @@ function isStreamingProgress(data: unknown): data is { streaming: unknown } {
   );
 }
 
+// Add type guards for the new format
+function isTextChunk(data: unknown): data is TextChunkMessage {
+  return typeof data === 'object' && data !== null && 'type' in data && (data as any).type === 'text_chunk';
+}
+
+function isCompletedMessage(data: unknown): data is CompletedMessage {
+  return typeof data === 'object' && data !== null && 'type' in data && (data as any).type === 'completed';
+}
+
+function isErrorMessageNew(data: unknown): data is ErrorMessage {
+  return typeof data === 'object' && data !== null && 'type' in data && (data as any).type === 'error';
+}
+
+function isErrorMessage(data: unknown): data is { error: unknown } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'error' in data
+  );
+}
+
 // Add this function above the Chat component
 function renderMessage(msg: Message) {
   try {
+    // Try to parse as JSON first (for backwards compatibility)
     const data = JSON.parse(msg.content);
-    // Demographics/Initial Case
+    
+    // Initial case message (demographics, presenting complaint, ICE)
     if ('demographics' in data && 'presenting_complaint' in data) {
       return (
         <div>
@@ -141,8 +172,8 @@ function renderMessage(msg: Message) {
       );
     }
     // New structured feedback - don't render in chat, will be handled by feedback card
-    if (isFeedbackMessage(data)) {
-      return null; // Don't render feedback messages in chat
+    if ('result' in data && 'feedback' in data) {
+      return null; // Don't render feedback in chat
     }
     // Status
     if ('status' in data && data.status === 'completed') {
@@ -159,8 +190,8 @@ function renderMessage(msg: Message) {
     // Fallback: show as JSON
     return <pre>{JSON.stringify(data, null, 2)}</pre>;
   } catch {
-    // Not JSON, fallback to plain text
-    return <span>{msg.content}</span>;
+    // Not JSON, render as plain text (this handles the new free text format)
+    return <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>;
   }
 }
 
@@ -253,47 +284,102 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
             try {
                 const decodedCondition = decodeURIComponent(condition);
                 let firstMessageReceived = false;
+                let accumulatedText = "";
+                let assistantMessageIndex = -1;
+                
                 await streamPost(
                     "https://ukmla-case-tutor-api.onrender.com/start_case",
                     { condition: decodedCondition },
                     (data: unknown) => {
                         if (data) {
                             // Clear loading message when first real message is received
-                            if (!firstMessageReceived && !isStreamingProgress(data)) {
+                            if (!firstMessageReceived && !isStreamingProgress(data) && !isTextChunk(data)) {
                                 setMessages([]);
                                 firstMessageReceived = true;
                             }
 
-                            // Handle different types of messages
-                            if (isInitialCaseMessage(data)) {
-                                appendMessage({ role: 'assistant', content: JSON.stringify(data) });
-                            } else if (isQuestionMessage(data)) {
-                                appendMessage({ role: 'assistant', content: JSON.stringify(data) });
+                            // Handle new free text streaming format
+                            if (isTextChunk(data)) {
+                                // Clear loading message on first text chunk
+                                if (!firstMessageReceived) {
+                                    setMessages([]);
+                                    firstMessageReceived = true;
+                                }
+                                
+                                // Accumulate text chunks into a single message
+                                accumulatedText += data.content;
+                                
+                                // If this is the first chunk, create a new assistant message
+                                if (assistantMessageIndex === -1) {
+                                    appendMessage({ role: "assistant", content: accumulatedText });
+                                    assistantMessageIndex = 0; // First message after clearing loading
+                                } else {
+                                    // Update the existing assistant message with accumulated text
+                                    setMessages(prev => {
+                                        const newMessages = [...prev];
+                                        if (newMessages[assistantMessageIndex]) {
+                                            newMessages[assistantMessageIndex] = {
+                                                ...newMessages[assistantMessageIndex],
+                                                content: accumulatedText
+                                            };
+                                        }
+                                        return newMessages;
+                                    });
+                                }
+                            } else if (isCompletedMessage(data)) {
+                                // Final message received, enable input
                                 setAssistantMessageComplete(true);
-                            } else if (isFeedbackMessage(data)) {
-                                // Don't append feedback message to chat - it will be shown in the feedback card
-                                setCaseCompletionData({
-                                    is_completed: true,
-                                    result: data.result,
-                                    feedback: data.feedback,
-                                    thread_metadata: undefined,
-                                    next_case_variation: undefined,
-                                    available_actions: ['new_case_same_condition', 'start_new_case', 'save_performance']
-                                });
-                                setCaseCompleted(true);
-                                setShowActions(true);
-                            } else if (isStatusCompleted(data)) {
-                                // Status completed - case is finished
-                                setCaseCompleted(true);
-                                setShowActions(true);
-                            } else if (isErrorMessage(data)) {
-                                appendMessage({ role: 'assistant', content: JSON.stringify(data) });
-                            } else if (isStreamingProgress(data)) {
-                                // Ignore streaming progress indicators - they're just for UX feedback
-                                // Don't append to messages, just continue
+                                
+                                // Try to parse the full_text as JSON to check for structured data
+                                try {
+                                    const parsedData = JSON.parse(data.full_text);
+                                    if (isFeedbackMessage(parsedData)) {
+                                        setCaseCompletionData({
+                                            is_completed: true,
+                                            result: parsedData.result,
+                                            feedback: parsedData.feedback,
+                                            thread_metadata: undefined,
+                                            next_case_variation: undefined,
+                                            available_actions: ['new_case_same_condition', 'start_new_case', 'save_performance']
+                                        });
+                                        setCaseCompleted(true);
+                                        setShowActions(true);
+                                    }
+                                } catch {
+                                    // Not JSON, just a regular completion
+                                }
+                            } else if (isErrorMessageNew(data)) {
+                                appendMessage({ role: "assistant", content: `❌ Error: ${data.message}` });
+                                setAssistantMessageComplete(true);
                             } else {
-                                // Fallback for any other message type
-                                appendMessage({ role: 'assistant', content: JSON.stringify(data) });
+                                // Handle legacy structured JSON messages for backwards compatibility
+                                if (isInitialCaseMessage(data)) {
+                                    appendMessage({ role: 'assistant', content: JSON.stringify(data) });
+                                } else if (isQuestionMessage(data)) {
+                                    appendMessage({ role: 'assistant', content: JSON.stringify(data) });
+                                    setAssistantMessageComplete(true);
+                                } else if (isFeedbackMessage(data)) {
+                                    setCaseCompletionData({
+                                        is_completed: true,
+                                        result: data.result,
+                                        feedback: data.feedback,
+                                        thread_metadata: undefined,
+                                        next_case_variation: undefined,
+                                        available_actions: ['new_case_same_condition', 'start_new_case', 'save_performance']
+                                    });
+                                    setCaseCompleted(true);
+                                    setShowActions(true);
+                                } else if (isStatusCompleted(data)) {
+                                    setCaseCompleted(true);
+                                    setShowActions(true);
+                                } else if (isErrorMessage(data)) {
+                                    appendMessage({ role: 'assistant', content: JSON.stringify(data) });
+                                } else if (isStreamingProgress(data)) {
+                                    // Ignore streaming progress indicators
+                                } else {
+                                    // Fallback for any other message type
+                                    appendMessage({ role: 'assistant', content: JSON.stringify(data) });
+                                }
                             }
                         }
                     },
@@ -314,7 +400,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [condition, accessToken, threadId]);
 
-    // Refactor handleSend to handle all structured JSON messages for /continue_case
+    // Refactor handleSend to handle the new free text streaming format for /continue_case
     const handleSend = async () => {
         if (!input || !threadId || loading) return;
         const messageToSend = input;
@@ -323,32 +409,79 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         setAssistantMessageComplete(false);
         appendMessage(userMsg);
         setLoading(true);
+        
+        // Track accumulated text for the assistant response
+        let accumulatedText = "";
+        let assistantMessageIndex = -1;
+        
         try {
             await streamPost(
                 "https://ukmla-case-tutor-api.onrender.com/continue_case",
                 { thread_id: threadId, user_input: messageToSend },
                 (data: unknown) => {
-                  if (isQuestionMessage(data)) {
-                    appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
-                    setAssistantMessageComplete(true); // Enable input box immediately after question
-                  } else if (isFeedbackMessage(data)) {
-                    // Don't append feedback message to chat - it will be shown in the feedback card
-                    setCaseCompletionData({
-                      is_completed: true,
-                      result: data.result,
-                      feedback: data.feedback,
-                    });
-                    setCaseCompleted(true);
-                    setShowActions(true);
-                  } else if (isStatusCompleted(data)) {
-                    setAssistantMessageComplete(true);
-                    setCaseCompleted(true);
-                    setShowActions(true);
-                    if (onCaseComplete) onCaseComplete();
-                  } else if (isErrorMessage(data)) {
-                    appendMessage({ role: "system", content: JSON.stringify({ error: data.error }) });
-                    setAssistantMessageComplete(true); // Allow user to try again
-                  }
+                    if (isTextChunk(data)) {
+                        // Accumulate text chunks into a single message
+                        accumulatedText += data.content;
+                        
+                        // If this is the first chunk, create a new assistant message
+                        if (assistantMessageIndex === -1) {
+                            appendMessage({ role: "assistant", content: accumulatedText });
+                            assistantMessageIndex = messages.length; // Will be the index of the new message
+                        } else {
+                            // Update the existing assistant message with accumulated text
+                            setMessages(prev => {
+                                const newMessages = [...prev];
+                                if (newMessages[assistantMessageIndex]) {
+                                    newMessages[assistantMessageIndex] = {
+                                        ...newMessages[assistantMessageIndex],
+                                        content: accumulatedText
+                                    };
+                                }
+                                return newMessages;
+                            });
+                        }
+                    } else if (isCompletedMessage(data)) {
+                        // Final message received, enable input and check for case completion
+                        setAssistantMessageComplete(true);
+                        
+                        // Try to parse the full_text as JSON to check for case completion
+                        try {
+                            const parsedData = JSON.parse(data.full_text);
+                            if (isFeedbackMessage(parsedData)) {
+                                setCaseCompletionData({
+                                    is_completed: true,
+                                    result: parsedData.result,
+                                    feedback: parsedData.feedback,
+                                });
+                                setCaseCompleted(true);
+                                setShowActions(true);
+                            }
+                        } catch {
+                            // Not JSON, just a regular completion
+                        }
+                    } else if (isErrorMessageNew(data)) {
+                        appendMessage({ role: "system", content: `❌ Error: ${data.message}` });
+                        setAssistantMessageComplete(true);
+                    } else {
+                        // Fallback for any other message type (backwards compatibility)
+                        if (isQuestionMessage(data)) {
+                            appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                            setAssistantMessageComplete(true);
+                        } else if (isFeedbackMessage(data)) {
+                            setCaseCompletionData({
+                                is_completed: true,
+                                result: data.result,
+                                feedback: data.feedback,
+                            });
+                            setCaseCompleted(true);
+                            setShowActions(true);
+                        } else if (isStatusCompleted(data)) {
+                            setAssistantMessageComplete(true);
+                            setCaseCompleted(true);
+                            setShowActions(true);
+                            if (onCaseComplete) onCaseComplete();
+                        }
+                    }
                 }
             );
         } catch (err) {

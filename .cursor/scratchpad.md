@@ -64,29 +64,92 @@ You want to deploy your Next.js frontend to Vercel, but previously encountered l
 
 ### **Implementation Summary**:
 - ✅ **API Integration**: Successfully integrated with `/progress` endpoint
-- ✅ **Fallback Strategy**: Implemented sophisticated fallback using ward-level data with realistic variation
-- ✅ **Error Handling**: Added comprehensive error handling with detailed logging
+- ✅ **Error Handling**: Removed fallback strategy, now shows proper error messages when data unavailable
 - ✅ **TypeScript Compliance**: Fixed all linter errors for Vercel deployment
 - ✅ **Build Verification**: `npm run build` passes successfully
 
 ### **Performance Data Strategy**:
-1. **Primary**: Attempts to fetch condition-level stats from `progressData.condition_stats`
-2. **Ward-Level Fallback**: Uses ward statistics distributed across conditions with variation
-3. **Demo Data Fallback**: Provides realistic demo data if API fails completely
+1. **Primary**: Fetches condition-level stats from `progressData.condition_stats`
+2. **Error Handling**: Shows error message if condition-level data not available
+3. **No Fallbacks**: Removed all fallback strategies to ensure data integrity
 
 ### **Key Features Implemented**:
-- 📊 **Intelligent Data Distribution**: Ward stats distributed with 0.8-1.2x variation per condition
-- 🎯 **Score Variation**: Realistic score variations (0.9-1.1x of ward average)
-- 🔍 **Comprehensive Logging**: Detailed console logging for debugging
-- 🛡️ **Error Resilience**: Multiple fallback layers ensure UI never breaks
+- 🔍 **Direct API Integration**: Fetches from `/progress` endpoint expecting `condition_stats` field
+- 🛡️ **Proper Error Handling**: Shows clear error messages when data unavailable
 - 📱 **TypeScript Safety**: Proper interfaces and type safety
+- 🔄 **Retry Functionality**: Users can retry failed requests
+
+### **API Requirements for Backend Enhancement**:
+
+#### **Current `/progress` Endpoint Response Structure**:
+```json
+{
+  "overall": { ... },
+  "ward_stats": { 
+    "ward_name": {
+      "total_cases": number,
+      "avg_score": number
+    }
+  }
+}
+```
+
+#### **Required Addition - `condition_stats` Field**:
+```json
+{
+  "overall": { ... },
+  "ward_stats": { ... },
+  "condition_stats": {
+    "Acute Coronary Syndrome": {
+      "total_cases": 15,
+      "avg_score": 7.8
+    },
+    "Hypertension Management": {
+      "total_cases": 23,
+      "avg_score": 8.2
+    },
+    "Adult Advanced Life Support": {
+      "total_cases": 8,
+      "avg_score": 6.9
+    }
+  }
+}
+```
+
+#### **Backend Implementation Requirements**:
+
+1. **Database Query**: Aggregate performance data by condition
+   ```sql
+   SELECT 
+     condition,
+     COUNT(*) as total_cases,
+     AVG(score) as avg_score
+   FROM performance 
+   WHERE user_id = $1 
+   GROUP BY condition
+   ```
+
+2. **API Response**: Add `condition_stats` field to existing `/progress` endpoint response
+
+3. **Data Structure**: Each condition should have:
+   - `total_cases`: Integer count of cases attempted for this condition
+   - `avg_score`: Float average score across all attempts (rounded to 1 decimal place)
+
+4. **Filtering**: Only include conditions where user has attempted at least one case
+
+5. **Performance**: Consider caching if this becomes a performance bottleneck
+
+#### **Frontend Expectations**:
+- Frontend will check for `progressData.condition_stats` in the API response
+- If `condition_stats` is missing or null, an error message will be displayed
+- No fallback strategies - data integrity is prioritized over graceful degradation
+- Users can retry failed requests via the error screen
 
 ### **Current Status**:
 - ✅ **Development Server**: Running successfully on localhost:3000
 - ✅ **Build Status**: Production build compiles without errors
-- ✅ **Linter Status**: No ESLint warnings or errors
-- ✅ **TypeScript Status**: No type errors
-- ✅ **Deployment Ready**: Ready for Vercel deployment
+- ✅ **Error Handling**: Proper error messages when condition stats unavailable
+- ⏳ **API Enhancement**: Waiting for backend to add `condition_stats` to `/progress` endpoint
 
 ### **Next Steps**:
 - 🧪 **User Testing**: Test with real authentication and API data
