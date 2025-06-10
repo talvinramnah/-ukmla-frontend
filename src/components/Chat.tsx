@@ -309,23 +309,33 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                                 // Accumulate text chunks into a single message
                                 accumulatedText += data.content;
                                 
-                                // If this is the first chunk, create a new assistant message
-                                if (assistantMessageIndex === -1) {
-                                    appendMessage({ role: "assistant", content: accumulatedText });
-                                    assistantMessageIndex = 0; // First message after clearing loading
-                                } else {
-                                    // Update the existing assistant message with accumulated text
-                                    setMessages(prev => {
-                                        const newMessages = [...prev];
-                                        if (newMessages[assistantMessageIndex]) {
-                                            newMessages[assistantMessageIndex] = {
-                                                ...newMessages[assistantMessageIndex],
-                                                content: accumulatedText
-                                            };
+                                setMessages(prev => {
+                                    const newMessages = [...prev];
+                                    
+                                    // Find the last assistant message or create a new one
+                                    let lastAssistantIndex = -1;
+                                    for (let i = newMessages.length - 1; i >= 0; i--) {
+                                        if (newMessages[i].role === "assistant") {
+                                            lastAssistantIndex = i;
+                                            break;
                                         }
-                                        return newMessages;
-                                    });
-                                }
+                                    }
+                                    
+                                    if (lastAssistantIndex === -1) {
+                                        // No assistant message found, create new one
+                                        newMessages.push({ role: "assistant", content: accumulatedText });
+                                        assistantMessageIndex = newMessages.length - 1;
+                                    } else {
+                                        // Update existing assistant message
+                                        newMessages[lastAssistantIndex] = {
+                                            ...newMessages[lastAssistantIndex],
+                                            content: accumulatedText
+                                        };
+                                        assistantMessageIndex = lastAssistantIndex;
+                                    }
+                                    
+                                    return newMessages;
+                                });
                             } else if (isCompletedMessage(data)) {
                                 // Final message received, enable input
                                 setAssistantMessageComplete(true);
@@ -423,23 +433,33 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         // Accumulate text chunks into a single message
                         accumulatedText += data.content;
                         
-                        // If this is the first chunk, create a new assistant message
-                        if (assistantMessageIndex === -1) {
-                            appendMessage({ role: "assistant", content: accumulatedText });
-                            assistantMessageIndex = messages.length; // Will be the index of the new message
-                        } else {
-                            // Update the existing assistant message with accumulated text
-                            setMessages(prev => {
-                                const newMessages = [...prev];
-                                if (newMessages[assistantMessageIndex]) {
-                                    newMessages[assistantMessageIndex] = {
-                                        ...newMessages[assistantMessageIndex],
-                                        content: accumulatedText
-                                    };
+                        setMessages(prev => {
+                            const newMessages = [...prev];
+                            
+                            // Find the last assistant message or create a new one
+                            let lastAssistantIndex = -1;
+                            for (let i = newMessages.length - 1; i >= 0; i--) {
+                                if (newMessages[i].role === "assistant") {
+                                    lastAssistantIndex = i;
+                                    break;
                                 }
-                                return newMessages;
-                            });
-                        }
+                            }
+                            
+                            if (lastAssistantIndex === -1) {
+                                // No assistant message found, create new one
+                                newMessages.push({ role: "assistant", content: accumulatedText });
+                                assistantMessageIndex = newMessages.length - 1;
+                            } else {
+                                // Update existing assistant message
+                                newMessages[lastAssistantIndex] = {
+                                    ...newMessages[lastAssistantIndex],
+                                    content: accumulatedText
+                                };
+                                assistantMessageIndex = lastAssistantIndex;
+                            }
+                            
+                            return newMessages;
+                        });
                     } else if (isCompletedMessage(data)) {
                         // Final message received, enable input and check for case completion
                         setAssistantMessageComplete(true);
