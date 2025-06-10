@@ -12,6 +12,14 @@ interface ConditionStats {
   avg_score: number;
 }
 
+// Interface for performance record from API
+interface PerformanceRecord {
+  condition: string;
+  score: number;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
 // Image configuration - structured for easy expansion to multiple images
 const CONDITION_IMAGES = {
   // MVP: Single placeholder image for all conditions
@@ -24,7 +32,7 @@ const CONDITION_IMAGES = {
 };
 
 // Helper function to get image for a condition (easily extensible)
-const getConditionImage = (condition: string): string => {
+const getConditionImage = (): string => {
   // MVP: Return default image
   return CONDITION_IMAGES.default;
   
@@ -88,7 +96,7 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
                 const conditionGroups: Record<string, number[]> = {};
                 
                 // Group scores by condition
-                performanceData.forEach((record: any) => {
+                performanceData.forEach((record: PerformanceRecord) => {
                   if (record.condition && typeof record.score === 'number') {
                     if (!conditionGroups[record.condition]) {
                       conditionGroups[record.condition] = [];
@@ -256,7 +264,7 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
       <div style={styles.gridContainer} className="condition-grid-responsive">
         {conditions.map((condition) => {
           const stats = conditionStats[condition] || { total_cases: 0, avg_score: 0.0 };
-          const imageSrc = getConditionImage(condition);
+          const imageSrc = getConditionImage();
           
           return (
             <div
