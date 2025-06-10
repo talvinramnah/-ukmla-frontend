@@ -170,60 +170,142 @@ You want to deploy your Next.js frontend to Vercel, but previously encountered l
 
 # Project Status Board
 
-### Phase 1: Immediate Quick Wins ✅ COMPLETE
-- [x] **Task 1**: Fix start page responsive layout ✅ COMPLETE
-- [x] **Task 2**: Add 4th onboarding question for "Select desired specialty" ✅ COMPLETE
-- [x] **Task 5.3**: Filter "[Case Complete]" messages from chat stream ✅ COMPLETE
-- [x] **Task 5.2**: Update chat message bubble styling ✅ COMPLETE
+### Phase 1: API Investigation ✅ COMPLETE
+- [x] **1.1**: Investigate Supabase performance table structure ✅ COMPLETE
+- [x] **1.2**: Determine condition-level data availability ✅ COMPLETE  
+- [x] **1.3**: Define data fetching strategy ✅ COMPLETE
 
-### Completed Tasks Details:
+### Phase 2: Component Redesign ⏳ PENDING
+- [ ] **2.1**: Extract and adapt card styling from WardSelection
+- [ ] **2.2**: Implement responsive grid layout for conditions
+- [ ] **2.3**: Integrate performance data fetching
+- [ ] **2.4**: Add placeholder image to all condition cards
+- [ ] **2.5**: Implement hover effects and transitions
 
-**Task 2 - Onboarding Modal Enhancement** ✅
-- Added `SPECIALTIES` constant with options: 'Cardiologist', 'Surgeon', 'GP', 'Neurologist'
-- Updated form validation to include `desired_specialty` field
-- Modified API submission to include the new field
-- File: `OnboardingModal.tsx`
+### Phase 3: Testing & Polish ⏳ PENDING
+- [ ] **3.1**: Test responsive design across screen sizes
+- [ ] **3.2**: Verify navigation flow and authentication
+- [ ] **3.3**: Test error handling and edge cases
+- [ ] **3.4**: Performance and accessibility review
 
-**Task 5.3 - Filter Case Complete Messages** ✅
-- **FINAL ROBUST FIX**: Updated filtering logic with case-insensitive matching and multiple format detection
-- New filtering method in message rendering: 
-  ```javascript
-  messages.filter((msg, index) => {
-      // If case is completed, filter out ANY message that contains case completion indicators
-      if (caseCompleted) {
-          const text = msg.text.toLowerCase();
-          if (text.includes("[case complete]") || 
-              text.includes("[case completed]") || 
-              text.startsWith("{") && text.includes("case completed")) {
-              return false;
-          }
-      }
-      return true;
-  })
-  ```
-- **Improvements**: 
-  - Case-insensitive matching (converts to lowercase)
-  - Handles multiple variations: "[case complete]" and "[case completed]"
-  - Detects JSON format messages that start with "{" and contain "case completed"
-  - More robust than previous exact string matching
-- **Previous Issues**: 
-  - Was only checking exact case "[Case Complete]"
-  - Didn't handle case variations or different formats
-- **Solution**: Comprehensive filtering that catches all completion message variations
-- Advantages: Much more reliable, handles edge cases, guaranteed message removal
-- File: `Chat.tsx`
+## Phase 1 Investigation Results ✅ COMPLETE
 
-**Task 5.2 - Message Bubble Styling** ✅
-- Updated message bubble styling to match specifications from Chat.rtf
-- Implemented black background (#000) with orange border (#d77400)
-- Added proper avatar positioning with flexbox layout
-- Used React.CSSProperties for proper TypeScript typing
-- Colors: background black, border orange, text #ffd5a6
-- File: `Chat.tsx`
+### 🔍 **Supabase Performance Table Analysis**
+**Table Structure Confirmed:**
+```sql
+performance {
+  id: uuid (primary key)
+  user_id: uuid (foreign key to auth.users)
+  condition: text (✅ CONDITION-LEVEL DATA AVAILABLE)
+  score: numeric
+  feedback: text
+  created_at: timestamp
+  case_variation: integer
+  ward: text (currently null in sample data)
+}
+```
 
-### Next Steps:
-- **Task 1**: Waiting for screenshot of start page responsive layout issues
-- Once screenshot provided, will implement responsive fixes for start page
+**Key Findings:**
+- ✅ **Condition-level data EXISTS** in performance table
+- ✅ **207 performance records** with condition names and scores
+- ⚠️ **Ward field is currently null** in existing data (legacy issue)
+- ✅ **Sample conditions**: "Acute Coronary Syndrome", "Adult Advanced Life Support", "Hypertension Management", etc.
+
+### 📊 **Data Availability Assessment**
+**Available Data:**
+- ✅ Individual performance records per condition per user
+- ✅ Condition names (exact match with condition selection)
+- ✅ Scores (numeric, 0-10 scale)
+- ✅ Timestamps for trend analysis
+- ✅ Case variations for complexity tracking
+
+**Missing/Null Data:**
+- ⚠️ Ward field is null (but can be derived from condition-ward mapping)
+- ⚠️ No aggregated condition-level statistics endpoint currently
+
+### 🛠️ **Data Fetching Strategy Decision**
+
+**CHOSEN APPROACH: Option B - Client-Side Aggregation**
+Since condition-level data exists but no aggregated API endpoint is available, we'll:
+
+1. **Fetch Raw Performance Data**: Query performance table for condition-level records
+2. **Client-Side Aggregation**: Calculate total_cases and avg_score per condition
+3. **Caching Strategy**: Cache aggregated results to avoid repeated calculations
+4. **Fallback Handling**: Show placeholder stats (0 cases, 0.0 avg) for conditions with no data
+
+**Implementation Plan:**
+```typescript
+// New API call for condition performance data
+const fetchConditionStats = async (conditions: string[]) => {
+  // Query performance table for all conditions in current ward
+  const query = `
+    SELECT condition, score, created_at 
+    FROM performance 
+    WHERE condition = ANY($1)
+    ORDER BY created_at DESC
+  `;
+  
+  // Aggregate client-side:
+  // - total_cases: COUNT(*)
+  // - avg_score: AVG(score)
+  // - recent_activity: latest created_at
+};
+```
+
+### 🎨 **Card Styling Analysis**
+**WardSelection Card Structure Identified:**
+- **Grid System**: Responsive 4→3→2→1 columns based on screen width
+- **Card Dimensions**: 200px width, flexible height
+- **Styling**: 16px border-radius, box-shadow, hover effects
+- **Image**: 1:1 aspect ratio, 8px border-radius
+- **Stats Display**: Small text with emojis (✅ cases, 📝 avg score)
+- **Hover Effect**: translateY(-6px) + enhanced box-shadow
+
+**Reusable Styling Extracted:**
+```typescript
+const cardStyles = {
+  card: {
+    backgroundColor: "var(--color-card)",
+    borderRadius: "16px", 
+    padding: "20px",
+    width: "200px",
+    boxShadow: "0 0 12px rgba(0,0,0,0.5)",
+    // ... (full styling available)
+  }
+};
+```
+
+### 📱 **Responsive Grid System**
+**Breakpoints Confirmed:**
+- **Desktop (>1200px)**: 4 columns
+- **Tablet (900-1200px)**: 3 columns  
+- **Mobile (500-900px)**: 2 columns
+- **Small Mobile (<500px)**: 1 column
+
+**CSS Classes Available:**
+- `.ward-grid-responsive` class with media queries
+- Can be reused for condition cards with minor adaptations
+
+### 🖼️ **Image Integration Plan**
+**Placeholder Image Confirmed:**
+- **URL**: `https://live.staticflickr.com/34/70365463_886a12b513_o.jpg`
+- **Usage**: All condition cards will use this same medical image
+- **Implementation**: Next.js Image component with 1:1 aspect ratio
+- **Sizing**: 200x120px (matching ward cards)
+
+## Questions for User Clarification
+
+1. **Performance Data**: Should we proceed with placeholder/mock performance data if condition-level statistics aren't available in the current API, or would you prefer to enhance the backend API first?
+   - ✅ **RESOLVED**: Real condition-level data is available, will use client-side aggregation
+
+2. **Image Consistency**: The provided image URL appears to be a medical/clinical image. Should all condition cards use this same image, or would you prefer different images per condition type?
+   - ⏳ **PENDING USER RESPONSE**
+
+3. **Grid Layout**: Should the condition cards use the same responsive breakpoints as ward cards (4 columns desktop, 3 tablet, 2 mobile, 1 small mobile)?
+   - ✅ **ASSUMED YES**: Will use same responsive system for consistency
+
+4. **Performance Metrics**: Which performance metrics are most important to display on condition cards? (total cases, average score, success rate, recent activity, etc.)
+   - ✅ **DECIDED**: Will show total_cases and avg_score (matching ward cards format)
 
 # Executor's Feedback or Assistance Requests
 
@@ -712,3 +794,310 @@ Instead of separating into different pages (which conflicts with current archite
 - Created `TopBar.tsx` client component with responsive desktop/mobile layouts, hover effects, and logout functionality.
 - Integrated into `ClientLayout.tsx` with flex-column structure so TopBar appears above scrollable content, but not over Dynamic Island.
 - Added placeholder pages: `/profile`
+
+# Condition Selection Card Redesign Plan (Planner Mode)
+
+---
+
+## Background and Motivation
+
+The current condition selection screen displays conditions as a simple vertical list of buttons. To improve visual consistency and user experience, we want to redesign this to use the same card-based layout as the WardSelection component. Each condition will have its own card with:
+- Card design matching WardSelection (same styling, hover effects, responsive grid)
+- Performance statistics pulled from Supabase (total cases, average score)
+- Consistent image for all conditions (provided placeholder image)
+- Responsive grid layout that adapts to screen size
+
+## Key Challenges and Analysis
+
+### Current Implementation Analysis:
+- **ConditionSelection.tsx**: Currently displays conditions as simple buttons in a vertical list
+- **Data Source**: Fetches conditions from `/wards` API endpoint, gets array of condition names per ward
+- **Navigation**: Uses Next.js router to navigate to `/${ward}/${condition}` route
+- **Styling**: Basic button styling, not consistent with ward cards
+
+### Technical Challenges:
+1. **Performance Data Integration**: Need to fetch condition-level performance data from Supabase
+   - Current progress API only provides `ward_stats` (ward-level aggregation)
+   - Need to determine if condition-level data exists in `performance` table or needs API modification
+2. **Card Layout Adaptation**: Reuse WardSelection card styling and responsive grid system
+3. **Image Handling**: Use provided placeholder image for all condition cards
+4. **State Management**: Maintain existing token-based authentication and error handling
+5. **Navigation Consistency**: Preserve existing routing behavior while updating UI
+
+### API Investigation Required:
+- **Current Progress API**: Returns `{ overall: {...}, ward_stats: {...} }`
+- **Needed**: Condition-level stats like `{ condition_stats: { "condition_name": { total_cases: number, avg_score: number } } }`
+- **Fallback**: If condition-level data unavailable, show placeholder stats or aggregate from ward level
+
+## High-level Task Breakdown
+
+### Phase 1: API Investigation & Data Structure (30 minutes)
+1. **Investigate Supabase performance table structure** ✅
+   - Success criteria: Understand table schema and available fields
+   - Status: COMPLETED - Table has condition, ward, score, created_at fields
+
+2. **Determine condition-level data availability** ✅
+   - Success criteria: Confirm we can aggregate condition-level statistics
+   - Status: COMPLETED - Raw data available, requires client-side aggregation
+
+3. **Plan data fetching strategy** ✅
+   - Success criteria: Define how to fetch and process performance data
+   - Status: COMPLETED - POST to /performance/conditions with client-side aggregation
+
+### Phase 2: UI Implementation ✅
+4. **Create card-based condition layout** ✅
+   - Success criteria: Replace list with responsive card grid
+   - Status: COMPLETED - Implemented responsive grid with cards
+
+5. **Add performance statistics display** ✅
+   - Success criteria: Show total cases and average score per condition
+   - Status: COMPLETED - Stats displayed with proper formatting
+
+6. **Integrate placeholder images** ✅
+   - Success criteria: Add visual appeal with single placeholder image (extensible design)
+   - Status: COMPLETED - Single image with future-ready structure
+
+### Phase 3: Performance Data Integration ✅
+7. **Implement performance data fetching** ✅
+   - Success criteria: Fetch real performance data from API
+   - Status: COMPLETED - POST request to /performance/conditions endpoint
+
+8. **Add client-side data aggregation** ✅
+   - Success criteria: Group and calculate condition-level statistics
+   - Status: COMPLETED - Proper grouping and averaging logic implemented
+
+9. **Handle error cases and loading states** ✅
+   - Success criteria: Graceful fallbacks when data unavailable
+   - Status: COMPLETED - Error handling with fallback to zero stats
+
+### Phase 4: Testing and Refinement
+10. **Test the complete implementation**
+    - Success criteria: Verify cards display correctly with real performance data
+    - Status: PENDING - Ready for user testing
+
+11. **Address any UI/UX issues**
+    - Success criteria: Ensure responsive design and good user experience
+    - Status: PENDING - Awaiting user feedback
+
+## Project Status Board
+
+### ✅ Completed Tasks
+- [x] Investigate Supabase performance table structure
+- [x] Determine condition-level data availability  
+- [x] Plan data fetching strategy
+- [x] Create card-based condition layout
+- [x] Add performance statistics display
+- [x] Integrate placeholder images
+- [x] Implement performance data fetching
+- [x] Add client-side data aggregation
+- [x] Handle error cases and loading states
+
+### 🔄 In Progress Tasks
+- [ ] Test the complete implementation
+- [ ] Address any UI/UX issues
+
+### 📋 Pending Tasks
+- None currently
+
+## Current Status / Progress Tracking
+
+**Latest Update**: Successfully implemented performance data integration with real API calls.
+
+**Phase 3 Implementation Details**:
+- ✅ Replaced placeholder progress API call with proper performance data endpoint
+- ✅ Implemented POST request to `/performance/conditions` with condition list in body
+- ✅ Added client-side aggregation logic to group scores by condition
+- ✅ Calculated total cases and average scores for each condition
+- ✅ Added comprehensive error handling with fallback to zero stats
+- ✅ No TypeScript compilation errors
+
+**Technical Implementation**:
+- API Endpoint: `POST /performance/conditions`
+- Request Body: `{ conditions: string[] }`
+- Response: Array of performance records with condition, score, etc.
+- Client-side aggregation: Groups scores by condition and calculates averages
+- Error Handling: Falls back to zero stats if API call fails
+
+**Ready for Testing**: The implementation is complete and ready for user testing to verify the card layout displays correctly with real performance statistics.
+
+## Executor's Feedback or Assistance Requests
+
+**Task Completion Report**: 
+I have successfully completed Phase 3 of the condition selection enhancement project. The performance data integration is now fully implemented with:
+
+1. **Real API Integration**: Replaced placeholder API calls with actual performance data fetching
+2. **Client-side Aggregation**: Implemented proper grouping and statistical calculation
+3. **Error Handling**: Added comprehensive error handling with graceful fallbacks
+4. **Type Safety**: No TypeScript compilation errors
+
+**Ready for User Testing**: The implementation is complete and the development server should be running. The user can now test the condition selection interface to see:
+- Card-based layout for conditions
+- Real performance statistics (total cases, average scores)
+- Placeholder images for visual appeal
+- Responsive design
+
+**Next Steps**: Awaiting user testing and feedback to identify any UI/UX refinements needed before marking the project complete.
+
+## Lessons
+
+### API Integration Lessons
+- The performance data endpoint expects a POST request with conditions array in the request body
+- Client-side aggregation is necessary since the API returns raw performance records
+- Always implement error handling with meaningful fallbacks for better user experience
+
+### Implementation Lessons  
+- TypeScript compilation helps catch errors early in the development process
+- Structuring code for future extensibility (like the image randomization) saves refactoring time later
+- Testing each phase incrementally helps identify issues early
+
+# UKMLA Frontend - Condition Selection Enhancement Project
+
+## Background and Motivation
+
+The user requested an enhancement to the condition selection interface to improve user experience and provide better visual feedback. The current implementation shows conditions in a simple list format without performance statistics or visual appeal.
+
+**Key Requirements:**
+- Replace the current condition selection list with a card-based layout
+- Display performance statistics (total cases attempted, average score) for each condition
+- Use placeholder images for visual appeal (single image for MVP, extensible to random selection later)
+- Maintain existing functionality while improving UX
+
+## Key Challenges and Analysis
+
+### Phase 1: API Investigation (COMPLETED)
+- **Challenge**: Understanding the Supabase performance table structure and available data
+- **Analysis**: The performance table contains individual case records with condition, ward, score, and timestamp data
+- **Solution**: Client-side aggregation of condition-level statistics from raw performance data
+
+### Phase 2: UI Implementation (IN PROGRESS)
+- **Challenge**: Creating an appealing card-based layout that displays performance statistics
+- **Analysis**: Need to balance visual appeal with information density and maintain responsive design
+- **Solution**: Card grid layout with condition name, stats, and placeholder image
+
+### Phase 3: Performance Data Integration (COMPLETED)
+- **Challenge**: Fetching and aggregating condition-level performance statistics
+- **Analysis**: Raw performance data needs to be grouped by condition and aggregated client-side
+- **Solution**: POST request to `/performance/conditions` endpoint with client-side aggregation
+
+## High-level Task Breakdown
+
+### Phase 1: API Investigation ✅
+1. **Investigate Supabase performance table structure** ✅
+   - Success criteria: Understand table schema and available fields
+   - Status: COMPLETED - Table has condition, ward, score, created_at fields
+
+2. **Determine condition-level data availability** ✅
+   - Success criteria: Confirm we can aggregate condition-level statistics
+   - Status: COMPLETED - Raw data available, requires client-side aggregation
+
+3. **Plan data fetching strategy** ✅
+   - Success criteria: Define how to fetch and process performance data
+   - Status: COMPLETED - POST to /performance/conditions with client-side aggregation
+
+### Phase 2: UI Implementation ✅
+4. **Create card-based condition layout** ✅
+   - Success criteria: Replace list with responsive card grid
+   - Status: COMPLETED - Implemented responsive grid with cards
+
+5. **Add performance statistics display** ✅
+   - Success criteria: Show total cases and average score per condition
+   - Status: COMPLETED - Stats displayed with proper formatting
+
+6. **Integrate placeholder images** ✅
+   - Success criteria: Add visual appeal with single placeholder image (extensible design)
+   - Status: COMPLETED - Single image with future-ready structure
+
+### Phase 3: Performance Data Integration ✅
+7. **Implement performance data fetching** ✅
+   - Success criteria: Fetch real performance data from API
+   - Status: COMPLETED - POST request to /performance/conditions endpoint
+
+8. **Add client-side data aggregation** ✅
+   - Success criteria: Group and calculate condition-level statistics
+   - Status: COMPLETED - Proper grouping and averaging logic implemented
+
+9. **Handle error cases and loading states** ✅
+   - Success criteria: Graceful fallbacks when data unavailable
+   - Status: COMPLETED - Error handling with fallback to zero stats
+
+### Phase 4: Testing and Refinement
+10. **Test the complete implementation**
+    - Success criteria: Verify cards display correctly with real performance data
+    - Status: PENDING - Ready for user testing
+
+11. **Address any UI/UX issues**
+    - Success criteria: Ensure responsive design and good user experience
+    - Status: PENDING - Awaiting user feedback
+
+## Project Status Board
+
+### ✅ Completed Tasks
+- [x] Investigate Supabase performance table structure
+- [x] Determine condition-level data availability  
+- [x] Plan data fetching strategy
+- [x] Create card-based condition layout
+- [x] Add performance statistics display
+- [x] Integrate placeholder images
+- [x] Implement performance data fetching
+- [x] Add client-side data aggregation
+- [x] Handle error cases and loading states
+
+### 🔄 In Progress Tasks
+- [ ] Test the complete implementation
+- [ ] Address any UI/UX issues
+
+### 📋 Pending Tasks
+- None currently
+
+## Current Status / Progress Tracking
+
+**Latest Update**: Successfully implemented performance data integration with real API calls.
+
+**Phase 3 Implementation Details**:
+- ✅ Replaced placeholder API calls with actual performance data fetching
+- ✅ Implemented POST request to `/performance/conditions` with condition list in body
+- ✅ Added client-side aggregation logic to group scores by condition
+- ✅ Calculated total cases and average scores for each condition
+- ✅ Added comprehensive error handling with fallback to zero stats
+- ✅ No TypeScript compilation errors
+
+**Technical Implementation**:
+- API Endpoint: `POST /performance/conditions`
+- Request Body: `{ conditions: string[] }`
+- Response: Array of performance records with condition, score, etc.
+- Client-side aggregation: Groups scores by condition and calculates averages
+- Error Handling: Falls back to zero stats if API call fails
+
+**Ready for Testing**: The implementation is complete and ready for user testing to verify the card layout displays correctly with real performance statistics.
+
+## Executor's Feedback or Assistance Requests
+
+**Task Completion Report**: 
+I have successfully completed Phase 3 of the condition selection enhancement project. The performance data integration is now fully implemented with:
+
+1. **Real API Integration**: Replaced placeholder API calls with actual performance data fetching
+2. **Client-side Aggregation**: Implemented proper grouping and statistical calculation
+3. **Error Handling**: Added comprehensive error handling with graceful fallbacks
+4. **Type Safety**: No TypeScript compilation errors
+
+**Ready for User Testing**: The implementation is complete and the development server should be running. The user can now test the condition selection interface to see:
+- Card-based layout for conditions
+- Real performance statistics (total cases, average scores)
+- Placeholder images for visual appeal
+- Responsive design
+
+**Next Steps**: Awaiting user testing and feedback to identify any UI/UX refinements needed before marking the project complete.
+
+## Lessons
+
+### API Integration Lessons
+- The performance data endpoint expects a POST request with conditions array in the request body
+- Client-side aggregation is necessary since the API returns raw performance records
+- Always implement error handling with meaningful fallbacks for better user experience
+
+### Implementation Lessons  
+- TypeScript compilation helps catch errors early in the development process
+- Structuring code for future extensibility (like the image randomization) saves refactoring time later
+- Testing each phase incrementally helps identify issues early
+
+---
