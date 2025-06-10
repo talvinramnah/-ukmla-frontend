@@ -122,15 +122,15 @@ function isStreamingProgress(data: unknown): data is { streaming: unknown } {
 
 // Add type guards for the new format
 function isTextChunk(data: unknown): data is TextChunkMessage {
-  return typeof data === 'object' && data !== null && 'type' in data && (data as any).type === 'text_chunk';
+  return typeof data === 'object' && data !== null && 'type' in data && (data as { type: string }).type === 'text_chunk';
 }
 
 function isCompletedMessage(data: unknown): data is CompletedMessage {
-  return typeof data === 'object' && data !== null && 'type' in data && (data as any).type === 'completed';
+  return typeof data === 'object' && data !== null && 'type' in data && (data as { type: string }).type === 'completed';
 }
 
 function isErrorMessageNew(data: unknown): data is ErrorMessage {
-  return typeof data === 'object' && data !== null && 'type' in data && (data as any).type === 'error';
+  return typeof data === 'object' && data !== null && 'type' in data && (data as { type: string }).type === 'error';
 }
 
 function isErrorMessage(data: unknown): data is { error: unknown } {
