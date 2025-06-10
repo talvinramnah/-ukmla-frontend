@@ -285,7 +285,6 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 const decodedCondition = decodeURIComponent(condition);
                 let firstMessageReceived = false;
                 let accumulatedText = "";
-                let assistantMessageIndex = -1;
                 
                 await streamPost(
                     "https://ukmla-case-tutor-api.onrender.com/start_case",
@@ -324,14 +323,12 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                                     if (lastAssistantIndex === -1) {
                                         // No assistant message found, create new one
                                         newMessages.push({ role: "assistant", content: accumulatedText });
-                                        assistantMessageIndex = newMessages.length - 1;
                                     } else {
                                         // Update existing assistant message
                                         newMessages[lastAssistantIndex] = {
                                             ...newMessages[lastAssistantIndex],
                                             content: accumulatedText
                                         };
-                                        assistantMessageIndex = lastAssistantIndex;
                                     }
                                     
                                     return newMessages;
@@ -422,7 +419,6 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         
         // Track accumulated text for the assistant response
         let accumulatedText = "";
-        let assistantMessageIndex = -1;
         
         try {
             await streamPost(
@@ -448,14 +444,12 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             if (lastAssistantIndex === -1) {
                                 // No assistant message found, create new one
                                 newMessages.push({ role: "assistant", content: accumulatedText });
-                                assistantMessageIndex = newMessages.length - 1;
                             } else {
                                 // Update existing assistant message
                                 newMessages[lastAssistantIndex] = {
                                     ...newMessages[lastAssistantIndex],
                                     content: accumulatedText
                                 };
-                                assistantMessageIndex = lastAssistantIndex;
                             }
                             
                             return newMessages;
