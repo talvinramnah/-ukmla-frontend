@@ -49,9 +49,7 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoveredCondition, setHoveredCondition] = useState<string | null>(null);
-  const [investigation, setInvestigation] = useState(true);
-  const [management, setManagement] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [caseFocus, setCaseFocus] = useState<"investigation" | "management" | "both">("both");
   const router = useRouter();
 
   useEffect(() => {
@@ -190,20 +188,7 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
   }
 
   const handleSelectCondition = (condition: string) => {
-    if (!investigation && !management) {
-      setErrorMsg('Please select at least 1');
-      return;
-    }
-    setErrorMsg(null);
-    const case_focus =
-      investigation && management
-        ? 'both'
-        : investigation
-        ? 'investigation'
-        : management
-        ? 'management'
-        : 'both';
-    router.push(`/chat?condition=${encodeURIComponent(condition)}&case_focus=${encodeURIComponent(case_focus)}`);
+    router.push(`/${encodeURIComponent(ward)}/${encodeURIComponent(condition)}?case_focus=${caseFocus}`);
   };
 
   // Card styling matching WardSelection component
@@ -308,101 +293,30 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
           ← Back to Wards
         </button>
       </div>
-
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', alignItems: 'center' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontFamily: 'inherit', fontSize: 16 }}>Investigation</span>
-          <span style={{ position: 'relative', display: 'inline-block', width: 48, height: 28 }}>
-            <input
-              type="checkbox"
-              checked={investigation}
-              onChange={() => {
-                setInvestigation(v => {
-                  if (!management && v) setErrorMsg(null);
-                  return !v;
-                });
-              }}
-              style={{ opacity: 0, width: 0, height: 0 }}
-            />
-            <span
-              style={{
-                position: 'absolute',
-                cursor: 'pointer',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: investigation ? '#2ecc40' : '#888',
-                borderRadius: 20,
-                transition: 'background 0.2s',
-                boxShadow: investigation ? '0 0 6px #2ecc40' : '0 0 4px #222',
-              }}
-            >
-              <span
-                style={{
-                  position: 'absolute',
-                  left: investigation ? 24 : 2,
-                  top: 2,
-                  width: 24,
-                  height: 24,
-                  background: '#fff',
-                  borderRadius: '50%',
-                  boxShadow: '0 1px 4px #0003',
-                  transition: 'left 0.2s',
-                }}
-              />
-            </span>
-          </span>
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontFamily: 'inherit', fontSize: 16 }}>Management</span>
-          <span style={{ position: 'relative', display: 'inline-block', width: 48, height: 28 }}>
-            <input
-              type="checkbox"
-              checked={management}
-              onChange={() => {
-                setManagement(v => {
-                  if (!investigation && v) setErrorMsg(null);
-                  return !v;
-                });
-              }}
-              style={{ opacity: 0, width: 0, height: 0 }}
-            />
-            <span
-              style={{
-                position: 'absolute',
-                cursor: 'pointer',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: management ? '#2ecc40' : '#888',
-                borderRadius: 20,
-                transition: 'background 0.2s',
-                boxShadow: management ? '0 0 6px #2ecc40' : '0 0 4px #222',
-              }}
-            >
-              <span
-                style={{
-                  position: 'absolute',
-                  left: management ? 24 : 2,
-                  top: 2,
-                  width: 24,
-                  height: 24,
-                  background: '#fff',
-                  borderRadius: '50%',
-                  boxShadow: '0 1px 4px #0003',
-                  transition: 'left 0.2s',
-                }}
-              />
-            </span>
-          </span>
-        </label>
-        {errorMsg && (
-          <span style={{ color: '#ff6b6b', fontSize: 14, marginLeft: 12 }}>{errorMsg}</span>
-        )}
+      {/* Focus Toggle Button Group */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24, gap: 12 }}>
+        {["investigation", "management", "both"].map(option => (
+          <button
+            key={option}
+            onClick={() => setCaseFocus(option as "investigation" | "management" | "both")}
+            style={{
+              background: caseFocus === option ? "#d77400" : "#222",
+              color: "#fff",
+              border: "2px solid #d77400",
+              borderRadius: 8,
+              padding: "8px 18px",
+              fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
+              fontSize: 16,
+              cursor: "pointer",
+              fontWeight: caseFocus === option ? "bold" : "normal",
+              transition: "background 0.2s"
+            }}
+          >
+            {option.charAt(0).toUpperCase() + option.slice(1)}
+          </button>
+        ))}
       </div>
-
+      {/* End Focus Toggle */}
       <div style={styles.gridContainer} className="condition-grid-responsive">
         {conditions.map((condition) => {
           const stats = conditionStats[condition] || { total_cases: 0, avg_score: 0.0 };

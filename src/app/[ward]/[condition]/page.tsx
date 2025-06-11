@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Chat from '../../../components/Chat';
 import { useTokens } from '../../../components/TokenContext';
 import { useEffect, useState } from 'react';
@@ -9,13 +9,11 @@ import useHasMounted from '../../../components/useHasMounted';
 export default function ChatPage() {
   const router = useRouter();
   const params = useParams();
-  const searchParams = useSearchParams();
   const { accessToken, refreshToken } = useTokens();
   const [isDesktop, setIsDesktop] = useState<undefined | boolean>(undefined);
   const hasMounted = useHasMounted();
 
   const conditionParam = typeof params.condition === 'string' ? params.condition : Array.isArray(params.condition) ? params.condition[0] : '';
-  const caseFocusParam = searchParams.get('case_focus') || 'both';
 
   // Redirects & screen width
   useEffect(() => {
@@ -61,7 +59,6 @@ export default function ChatPage() {
         </button>
         <Chat
           condition={conditionParam}
-          caseFocus={caseFocusParam}
           accessToken={accessToken}
           refreshToken={refreshToken}
           onCaseComplete={handleCaseComplete}

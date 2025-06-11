@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import PostCaseActions from "./PostCaseActions";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTokens } from "./TokenContext";
 import Image from "next/image";
 import ReactMarkdown from 'react-markdown';
@@ -13,7 +13,6 @@ type ChatProps = {
   refreshToken: string;
   leftAlignTitle?: boolean;
   onCaseComplete?: () => void;
-  caseFocus?: string;
 };
 
 // Define interfaces for messages and caseCompletionData
@@ -49,7 +48,7 @@ function renderMessage(msg: Message) {
   return <ReactMarkdown>{msg.content}</ReactMarkdown>;
 }
 
-export default function Chat({ condition, accessToken, refreshToken, leftAlignTitle, onCaseComplete, caseFocus = 'both' }: ChatProps) {
+export default function Chat({ condition, accessToken, refreshToken, leftAlignTitle, onCaseComplete }: ChatProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [threadId, setThreadId] = useState<string | null>(null);
@@ -64,6 +63,8 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     const [navError, setNavError] = useState<string | null>(null);
     const streamingMessageIndex = useRef<number | null>(null);
     const hasAppendedAssistant = useRef<boolean>(false);
+    const searchParams = useSearchParams();
+    const caseFocus = searchParams.get('case_focus') || 'both';
 
     const doctorImg = "https://i.imgur.com/NYfCYKZ.png";
     const studentImg = "https://i.imgur.com/D7DZ2Wv.png";
@@ -218,7 +219,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         };
         start();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [condition, accessToken, threadId]);
+    }, [condition, accessToken, threadId, caseFocus]);
 
     // Refactor handleSend to handle all structured JSON messages for /continue_case
     const handleSend = async () => {
@@ -342,6 +343,11 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 <h2 style={{ fontSize: "24px", marginBottom: "20px", textAlign: leftAlignTitle ? 'left' : 'center' }}>
                     {decodeURIComponent(condition)}
                 </h2>
+                <div style={{ marginBottom: 16, fontSize: 16, color: '#ffd5a6', fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace" }}>
+                  <span style={{ background: '#d77400', color: '#fff', borderRadius: 6, padding: '4px 12px', fontWeight: 'bold' }}>
+                    Case Focus: {caseFocus.charAt(0).toUpperCase() + caseFocus.slice(1)}
+                  </span>
+                </div>
                 
                 <div style={{ width: "100%", maxWidth: "800px" }}>
                     {messages
