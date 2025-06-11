@@ -466,12 +466,17 @@ const cardStyles = {
 - Chat supports leftAlignTitle prop for desktop layout.
 - Next: Test the feature on various screen sizes and across navigation to ensure correct appearance, disappearance, and layout shifts. Confirm with user before further integration or refactoring.
 - [2025-06-02] Fixed ESLint error for Vercel deployment (unused variable 'e' in catch). User will test manually on Vercel. All planned tasks complete.
+- [2025-06-02] Updated feedback parsing logic in Chat.tsx. Now detects and parses the new structured feedback format, and stores it in state. Fallback to old format is implemented. Next: Update the feedback card UI to display the new structure (summary, positive/negative points, pass/fail result).
+- [2025-06-02] Updated feedback card UI in Chat.tsx. The card now displays summary, positive/negative bullet points, and pass/fail result for the new format, and falls back to the old format if needed. Next: Verify backward compatibility and test both feedback formats.
+- [2025-06-02] Manual and code review confirm backward compatibility: both new structured feedback and old string feedback are supported and displayed correctly. Next: Testing (TDD/manual) to confirm correct display and error handling.
+- [2025-06-02] Added logic to detect and parse [CASE COMPLETED] feedback blocks in assistant messages. Now, if the backend sends structured feedback as a chat message, it is parsed and shown in the feedback card, and the raw JSON is filtered from the chat. Awaiting user confirmation that this resolves the issue.
 
-# Lessons
+## Lessons
 
 - Passing tokens via context or top-level state is essential for robust, maintainable API integration.
 - Each component should only be responsible for its own API calls and UI state, but must receive tokens and parameters from the parent/context.
 - [NEW] React Strict Mode in development can cause double API calls/effects. Always verify in production mode before debugging further.
+- If the backend sends structured feedback as a chat message (not just in the case_completed event), always scan assistant messages for [CASE COMPLETED] blocks and parse them for the feedback card. Filter out the raw JSON from the chat display for a clean UI.
 
 # Dynamic Island Feature (1 June 2025)
 
@@ -1253,3 +1258,4 @@ The current feedback card in `Chat.tsx` expects a different structure (single fe
 - [2025-06-02] Updated feedback card UI in Chat.tsx. The card now displays summary, positive/negative bullet points, and pass/fail result for the new format, and falls back to the old format if needed. Next: Verify backward compatibility and test both feedback formats.
 - [2025-06-02] Manual and code review confirm backward compatibility: both new structured feedback and old string feedback are supported and displayed correctly. Next: Testing (TDD/manual) to confirm correct display and error handling.
 - [2025-06-02] Fixed ESLint error for Vercel deployment (unused variable 'e' in catch). User will test manually on Vercel. All planned tasks complete.
+- [2025-06-02] Added logic to detect and parse [CASE COMPLETED] feedback blocks in assistant messages. Now, if the backend sends structured feedback as a chat message, it is parsed and shown in the feedback card, and the raw JSON is filtered from the chat. Awaiting user confirmation that this resolves the issue.

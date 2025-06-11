@@ -388,6 +388,29 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
       }
     }, [caseCompleted, onCaseComplete]);
 
+    // In the Chat component, add a useEffect to scan messages for [CASE COMPLETED] feedback blocks when caseCompleted is true
+    useEffect(() => {
+      if (!caseCompleted || !messages.length) return;
+      // Only update if we don't already have structured feedback
+      if (caseCompletionData && caseCompletionData.structuredFeedback) return;
+      // Find the first assistant message with a [CASE COMPLETED] block
+      const feedbackMsg = messages.find(
+        (msg) =>
+          msg.role === 'assistant' &&
+          /\[CASE COMPLETED\][^\{]*{[\s\S]+}/i.test(msg.content)
+      );
+      if (feedbackMsg) {
+        const structured = parseFeedback(feedbackMsg.content);
+        if (structured) {
+          setCaseCompletionData((prev) =>
+            prev
+              ? { ...prev, structuredFeedback: structured }
+              : { is_completed: true, feedback: feedbackMsg.content, score: 0, structuredFeedback: structured }
+          );
+        }
+      }
+    }, [caseCompleted, messages, caseCompletionData]);
+
     return (
         <div className="pixel-font" style={{ background: "#180161", minHeight: "100vh", padding: 32, color: "#ffd5a6", fontFamily: "VT323" }}>
             <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -406,9 +429,12 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             // If case is completed, filter out ANY message that contains case completion indicators
                             if (caseCompleted) {
                                 const text = msg.content.toLowerCase();
-                                if (text.includes("[case complete]") || 
-                                    text.includes("[case completed]") || 
-                                    text.startsWith("{") && text.includes("case completed")) {
+                                if (
+                                    text.includes("[case complete]") ||
+                                    text.includes("[case completed]") ||
+                                    (text.startsWith("{") && text.includes("case completed")) ||
+                                    /\[case completed\][^\{]*{[\s\S]+}/i.test(msg.content) // filter out JSON feedback blocks
+                                ) {
                                     return false;
                                 }
                             }
