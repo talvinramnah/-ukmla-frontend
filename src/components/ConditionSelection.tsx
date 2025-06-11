@@ -49,6 +49,8 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoveredCondition, setHoveredCondition] = useState<string | null>(null);
+  const [investigation, setInvestigation] = useState(true);
+  const [management, setManagement] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -187,7 +189,15 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
   }
 
   const handleSelectCondition = (condition: string) => {
-    router.push(`/${encodeURIComponent(ward)}/${encodeURIComponent(condition)}`);
+    const case_focus =
+      investigation && management
+        ? 'both'
+        : investigation
+        ? 'investigation'
+        : management
+        ? 'management'
+        : 'both';
+    router.push(`/chat?condition=${encodeURIComponent(condition)}&case_focus=${encodeURIComponent(case_focus)}`);
   };
 
   // Card styling matching WardSelection component
@@ -291,6 +301,15 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
         >
           ← Back to Wards
         </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+        <label>
+          <input type="checkbox" checked={investigation} onChange={() => setInvestigation(v => !v)} /> Investigation
+        </label>
+        <label>
+          <input type="checkbox" checked={management} onChange={() => setManagement(v => !v)} /> Management
+        </label>
       </div>
 
       <div style={styles.gridContainer} className="condition-grid-responsive">

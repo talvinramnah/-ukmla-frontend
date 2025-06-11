@@ -13,6 +13,7 @@ type ChatProps = {
   refreshToken: string;
   leftAlignTitle?: boolean;
   onCaseComplete?: () => void;
+  caseFocus?: string;
 };
 
 // Define interfaces for messages and caseCompletionData
@@ -48,7 +49,7 @@ function renderMessage(msg: Message) {
   return <ReactMarkdown>{msg.content}</ReactMarkdown>;
 }
 
-export default function Chat({ condition, accessToken, refreshToken, leftAlignTitle, onCaseComplete }: ChatProps) {
+export default function Chat({ condition, accessToken, refreshToken, leftAlignTitle, onCaseComplete, caseFocus = 'both' }: ChatProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [threadId, setThreadId] = useState<string | null>(null);
@@ -144,7 +145,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 setMessages([{ role: "system", content: "⏳ Loading case..." }]);
                 await streamPost(
                     "https://ukmla-case-tutor-api.onrender.com/start_case",
-                    { condition: decodedCondition },
+                    { condition: decodedCondition, case_focus: caseFocus },
                     (data: unknown) => {
                         // Handle assistant content chunks
                         if (typeof data === "object" && data !== null && "content" in data && typeof (data as { content: string }).content === "string") {
@@ -341,6 +342,9 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 <h2 style={{ fontSize: "24px", marginBottom: "20px", textAlign: leftAlignTitle ? 'left' : 'center' }}>
                     {decodeURIComponent(condition)}
                 </h2>
+                <div style={{ fontSize: '16px', color: '#ffd5a6', marginBottom: '16px' }}>
+                  <strong>Case Focus:</strong> {caseFocus.charAt(0).toUpperCase() + caseFocus.slice(1)}
+                </div>
                 
                 <div style={{ width: "100%", maxWidth: "800px" }}>
                     {messages
