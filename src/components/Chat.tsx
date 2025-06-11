@@ -34,34 +34,6 @@ interface CaseCompletionData {
 }
 
 // Add helper type guards for backend JSON message types
-function isInitialCaseMessage(data: unknown): data is { demographics: unknown; presenting_complaint: unknown; ice: unknown } {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'demographics' in data &&
-    'presenting_complaint' in data &&
-    'ice' in data
-  );
-}
-
-function isQuestionMessage(data: unknown): data is { question: unknown; attempt: unknown } {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'question' in data &&
-    'attempt' in data
-  );
-}
-
-function isFeedbackMessage(data: unknown): data is { result: unknown; feedback: unknown } {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'result' in data &&
-    'feedback' in data
-  );
-}
-
 function isStatusCompleted(data: unknown): data is { status: 'completed' } {
   return (
     typeof data === 'object' &&
@@ -222,12 +194,12 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     { condition: decodedCondition },
                     (data: unknown) => {
                         // Stream all { content: ... } chunks into a single assistant message
-                        if (typeof data === "object" && data !== null && typeof (data as any).content === "string") {
+                        if (typeof data === "object" && data !== null && "content" in data && typeof (data as { content: string }).content === "string") {
                             if (!firstMessageReceived) {
                                 setMessages([]);
                                 firstMessageReceived = true;
                             }
-                            accumulatedText += (data as any).content;
+                            accumulatedText += (data as { content: string }).content;
                             setMessages(prev => {
                                 const newMessages = [...prev];
                                 // Find the last assistant message or create a new one
@@ -260,7 +232,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         }
                         // Handle errors
                         if (isErrorMessage(data)) {
-                            appendMessage({ role: "system", content: JSON.stringify((data as any).error) });
+                            appendMessage({ role: "system", content: JSON.stringify((data as { error: unknown }).error) });
                             return;
                         }
                         // ...other handlers as needed
@@ -299,11 +271,11 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 { thread_id: threadId, user_input: messageToSend },
                 (data: unknown) => {
                     // Stream all { content: ... } chunks into a single assistant message
-                    if (typeof data === "object" && data !== null && typeof (data as any).content === "string") {
+                    if (typeof data === "object" && data !== null && "content" in data && typeof (data as { content: string }).content === "string") {
                         if (!firstMessageReceived) {
                             firstMessageReceived = true;
                         }
-                        accumulatedText += (data as any).content;
+                        accumulatedText += (data as { content: string }).content;
                         setMessages(prev => {
                             const newMessages = [...prev];
                             // Find the last assistant message or create a new one
@@ -336,7 +308,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     }
                     // Handle errors
                     if (isErrorMessage(data)) {
-                        appendMessage({ role: "system", content: JSON.stringify((data as any).error) });
+                        appendMessage({ role: "system", content: JSON.stringify((data as { error: unknown }).error) });
                         return;
                     }
                     // ...other handlers as needed
