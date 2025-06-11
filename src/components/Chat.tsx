@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import PostCaseActions from "./PostCaseActions";
 import { useRouter } from "next/navigation";
 import { useTokens } from "./TokenContext";
@@ -105,6 +105,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     const { clearTokens } = useTokens();
     const [navLoading, setNavLoading] = useState<string | null>(null); // 'new', 'ward', 'logout'
     const [navError, setNavError] = useState<string | null>(null);
+    const streamingMessageIndex = useRef<number | null>(null);
 
     const doctorImg = "https://i.imgur.com/NYfCYKZ.png";
     const studentImg = "https://i.imgur.com/D7DZ2Wv.png";
@@ -178,7 +179,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         setMessages([{ role: "system", content: "⏳ Loading case..." }]);
         setAssistantMessageComplete(false);
         let turnBuffer = "";
-        let streamingMessageIndex = -1;
+        streamingMessageIndex.current = null;
         const start = async () => {
             try {
                 const decodedCondition = decodeURIComponent(condition);
@@ -190,22 +191,21 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         // Handle assistant content chunks
                         if (typeof data === "object" && data !== null && "content" in data && typeof (data as { content: string }).content === "string") {
                             const chunk = (data as { content: string }).content;
-                            if (streamingMessageIndex === -1) {
+                            if (streamingMessageIndex.current === null) {
                                 // Remove loading message and append a new assistant message
                                 setMessages(prev => {
-                                    // Remove loading if present
                                     const filtered = prev.filter(m => m.role !== 'system' || !m.content.toLowerCase().includes('loading'));
                                     const newMessages = [...filtered, { role: "assistant", content: "" }];
-                                    streamingMessageIndex = newMessages.length - 1;
+                                    streamingMessageIndex.current = newMessages.length - 1;
                                     return newMessages;
                                 });
                             }
                             turnBuffer += chunk;
                             setMessages(prev => {
                                 const newMessages = [...prev];
-                                if (streamingMessageIndex !== -1) {
-                                    newMessages[streamingMessageIndex] = {
-                                        ...newMessages[streamingMessageIndex],
+                                if (streamingMessageIndex.current !== null) {
+                                    newMessages[streamingMessageIndex.current] = {
+                                        ...newMessages[streamingMessageIndex.current],
                                         content: turnBuffer
                                     };
                                 }
@@ -216,6 +216,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         // Handle turn_complete
                         if (typeof data === "object" && data !== null && "turn_complete" in data) {
                             setAssistantMessageComplete(true);
+                            streamingMessageIndex.current = null;
                             return;
                         }
                         // Handle case_completed
@@ -228,11 +229,13 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             setCaseCompleted(true);
                             setShowActions(true);
                             setAssistantMessageComplete(false);
+                            streamingMessageIndex.current = null;
                             return;
                         }
                         // Handle errors
                         if (isErrorMessage(data)) {
                             appendMessage({ role: "system", content: JSON.stringify((data as { error: unknown }).error) });
+                            streamingMessageIndex.current = null;
                             return;
                         }
                     },
@@ -246,6 +249,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
             } catch (err) {
                 setMessages([{ role: "system", content: "❌ Failed to start case." }]);
                 setAssistantMessageComplete(true);
+                streamingMessageIndex.current = null;
                 console.error('start_case error:', err);
             }
         };
@@ -263,7 +267,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         appendMessage(userMsg);
         setLoading(true);
         let turnBuffer = "";
-        let streamingMessageIndex = -1;
+        streamingMessageIndex.current = null;
         try {
             await streamPost(
                 "https://ukmla-case-tutor-api.onrender.com/continue_case",
@@ -272,22 +276,21 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     // Handle assistant content chunks
                     if (typeof data === "object" && data !== null && "content" in data && typeof (data as { content: string }).content === "string") {
                         const chunk = (data as { content: string }).content;
-                        if (streamingMessageIndex === -1) {
+                        if (streamingMessageIndex.current === null) {
                             // Remove loading message and append a new assistant message
                             setMessages(prev => {
-                                // Remove loading if present
                                 const filtered = prev.filter(m => m.role !== 'system' || !m.content.toLowerCase().includes('loading'));
                                 const newMessages = [...filtered, { role: "assistant", content: "" }];
-                                streamingMessageIndex = newMessages.length - 1;
+                                streamingMessageIndex.current = newMessages.length - 1;
                                 return newMessages;
                             });
                         }
                         turnBuffer += chunk;
                         setMessages(prev => {
                             const newMessages = [...prev];
-                            if (streamingMessageIndex !== -1) {
-                                newMessages[streamingMessageIndex] = {
-                                    ...newMessages[streamingMessageIndex],
+                            if (streamingMessageIndex.current !== null) {
+                                newMessages[streamingMessageIndex.current] = {
+                                    ...newMessages[streamingMessageIndex.current],
                                     content: turnBuffer
                                 };
                             }
@@ -298,6 +301,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     // Handle turn_complete
                     if (typeof data === "object" && data !== null && "turn_complete" in data) {
                         setAssistantMessageComplete(true);
+                        streamingMessageIndex.current = null;
                         return;
                     }
                     // Handle case_completed
@@ -310,11 +314,13 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         setCaseCompleted(true);
                         setShowActions(true);
                         setAssistantMessageComplete(false);
+                        streamingMessageIndex.current = null;
                         return;
                     }
                     // Handle errors
                     if (isErrorMessage(data)) {
                         appendMessage({ role: "system", content: JSON.stringify((data as { error: unknown }).error) });
+                        streamingMessageIndex.current = null;
                         return;
                     }
                 }
@@ -322,6 +328,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         } catch (err) {
             appendMessage({ role: "system", content: "❌ Failed to continue case." });
             setAssistantMessageComplete(true);
+            streamingMessageIndex.current = null;
             console.error('continue_case error:', err);
         } finally {
             setLoading(false);
@@ -548,6 +555,17 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     </>
                 )}
             </div>
+            <style jsx global>{`
+              .pixel-font ul, .pixel-font ol {
+                margin: 0 0 0 1.5em;
+                padding: 0;
+                list-style-position: inside;
+                color: inherit;
+              }
+              .pixel-font li {
+                margin-bottom: 0.5em;
+              }
+            `}</style>
         </div>
     );
 } 
