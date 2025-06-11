@@ -45,51 +45,7 @@ function isErrorMessage(data: unknown): data is { error: unknown } {
 
 // Add this function above the Chat component
 function renderMessage(msg: Message) {
-  try {
-    const data = JSON.parse(msg.content);
-    // Demographics/Initial Case
-    if ('demographics' in data && 'presenting_complaint' in data) {
-      return (
-        <div>
-          <strong>Patient: {data.demographics.name}, Age: {data.demographics.age}</strong>
-          <div><b>History:</b> {data.presenting_complaint.history}</div>
-          <div><b>Medical History:</b> {data.presenting_complaint.medical_history}</div>
-          <div><b>Drug History:</b> {data.presenting_complaint.drug_history}</div>
-          <div><b>Family History:</b> {data.presenting_complaint.family_history}</div>
-          <div><b>Ideas/Concerns/Expectations:</b> {data.ice.ideas} / {data.ice.concerns} / {data.ice.expectations}</div>
-        </div>
-      );
-    }
-    // Question
-    if ('question' in data) {
-      return (
-        <div>
-          <b>Question:</b> {data.question}
-          {data.assistant_feedback && data.assistant_feedback.length > 0 && (
-            <div><i>Hint: {data.assistant_feedback}</i></div>
-          )}
-        </div>
-      );
-    }
-    // Feedback/Score
-    if ('feedback' in data && 'score' in data) {
-      return (
-        <div>
-          <b>Feedback:</b> {data.feedback}
-          <div><b>Score:</b> {data.score}/10</div>
-        </div>
-      );
-    }
-    // Status
-    if ('status' in data && data.status === 'completed') {
-      return <b>Case Completed!</b>;
-    }
-    // Fallback: show as markdown
-    return <ReactMarkdown>{msg.content}</ReactMarkdown>;
-  } catch {
-    // Not JSON, fallback to markdown
-    return <ReactMarkdown>{msg.content}</ReactMarkdown>;
-  }
+  return <ReactMarkdown>{msg.content}</ReactMarkdown>;
 }
 
 export default function Chat({ condition, accessToken, refreshToken, leftAlignTitle, onCaseComplete }: ChatProps) {
@@ -106,6 +62,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     const [navLoading, setNavLoading] = useState<string | null>(null); // 'new', 'ward', 'logout'
     const [navError, setNavError] = useState<string | null>(null);
     const streamingMessageIndex = useRef<number | null>(null);
+    const hasAppendedAssistant = useRef<boolean>(false);
 
     const doctorImg = "https://i.imgur.com/NYfCYKZ.png";
     const studentImg = "https://i.imgur.com/D7DZ2Wv.png";
@@ -180,6 +137,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         setAssistantMessageComplete(false);
         let turnBuffer = "";
         streamingMessageIndex.current = null;
+        hasAppendedAssistant.current = false;
         const start = async () => {
             try {
                 const decodedCondition = decodeURIComponent(condition);
@@ -191,14 +149,14 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         // Handle assistant content chunks
                         if (typeof data === "object" && data !== null && "content" in data && typeof (data as { content: string }).content === "string") {
                             const chunk = (data as { content: string }).content;
-                            if (streamingMessageIndex.current === null) {
-                                // Remove loading message and append a new assistant message
+                            if (!hasAppendedAssistant.current) {
                                 setMessages(prev => {
                                     const filtered = prev.filter(m => m.role !== 'system' || !m.content.toLowerCase().includes('loading'));
                                     const newMessages = [...filtered, { role: "assistant", content: "" }];
                                     streamingMessageIndex.current = newMessages.length - 1;
                                     return newMessages;
                                 });
+                                hasAppendedAssistant.current = true;
                             }
                             turnBuffer += chunk;
                             setMessages(prev => {
@@ -217,6 +175,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         if (typeof data === "object" && data !== null && "turn_complete" in data) {
                             setAssistantMessageComplete(true);
                             streamingMessageIndex.current = null;
+                            hasAppendedAssistant.current = false;
                             return;
                         }
                         // Handle case_completed
@@ -230,12 +189,14 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             setShowActions(true);
                             setAssistantMessageComplete(false);
                             streamingMessageIndex.current = null;
+                            hasAppendedAssistant.current = false;
                             return;
                         }
                         // Handle errors
                         if (isErrorMessage(data)) {
                             appendMessage({ role: "system", content: JSON.stringify((data as { error: unknown }).error) });
                             streamingMessageIndex.current = null;
+                            hasAppendedAssistant.current = false;
                             return;
                         }
                     },
@@ -250,6 +211,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 setMessages([{ role: "system", content: "❌ Failed to start case." }]);
                 setAssistantMessageComplete(true);
                 streamingMessageIndex.current = null;
+                hasAppendedAssistant.current = false;
                 console.error('start_case error:', err);
             }
         };
@@ -268,6 +230,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         setLoading(true);
         let turnBuffer = "";
         streamingMessageIndex.current = null;
+        hasAppendedAssistant.current = false;
         try {
             await streamPost(
                 "https://ukmla-case-tutor-api.onrender.com/continue_case",
@@ -276,14 +239,14 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     // Handle assistant content chunks
                     if (typeof data === "object" && data !== null && "content" in data && typeof (data as { content: string }).content === "string") {
                         const chunk = (data as { content: string }).content;
-                        if (streamingMessageIndex.current === null) {
-                            // Remove loading message and append a new assistant message
+                        if (!hasAppendedAssistant.current) {
                             setMessages(prev => {
                                 const filtered = prev.filter(m => m.role !== 'system' || !m.content.toLowerCase().includes('loading'));
                                 const newMessages = [...filtered, { role: "assistant", content: "" }];
                                 streamingMessageIndex.current = newMessages.length - 1;
                                 return newMessages;
                             });
+                            hasAppendedAssistant.current = true;
                         }
                         turnBuffer += chunk;
                         setMessages(prev => {
@@ -302,6 +265,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     if (typeof data === "object" && data !== null && "turn_complete" in data) {
                         setAssistantMessageComplete(true);
                         streamingMessageIndex.current = null;
+                        hasAppendedAssistant.current = false;
                         return;
                     }
                     // Handle case_completed
@@ -315,12 +279,14 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         setShowActions(true);
                         setAssistantMessageComplete(false);
                         streamingMessageIndex.current = null;
+                        hasAppendedAssistant.current = false;
                         return;
                     }
                     // Handle errors
                     if (isErrorMessage(data)) {
                         appendMessage({ role: "system", content: JSON.stringify((data as { error: unknown }).error) });
                         streamingMessageIndex.current = null;
+                        hasAppendedAssistant.current = false;
                         return;
                     }
                 }
@@ -329,6 +295,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
             appendMessage({ role: "system", content: "❌ Failed to continue case." });
             setAssistantMessageComplete(true);
             streamingMessageIndex.current = null;
+            hasAppendedAssistant.current = false;
             console.error('continue_case error:', err);
         } finally {
             setLoading(false);
@@ -564,6 +531,22 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
               }
               .pixel-font li {
                 margin-bottom: 0.5em;
+              }
+              .pixel-font strong {
+                color: #ffd5a6;
+                font-weight: bold;
+                background: none;
+              }
+              .pixel-font em {
+                color: #ffd5a6;
+                font-style: italic;
+              }
+              .pixel-font pre, .pixel-font code {
+                background: #222;
+                color: #ffd5a6;
+                border-radius: 4px;
+                padding: 2px 6px;
+                font-size: 16px;
               }
             `}</style>
         </div>
