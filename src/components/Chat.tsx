@@ -5,6 +5,7 @@ import PostCaseActions from "./PostCaseActions";
 import { useRouter } from "next/navigation";
 import { useTokens } from "./TokenContext";
 import Image from "next/image";
+import ReactMarkdown from 'react-markdown';
 
 type ChatProps = {
   condition: string;
@@ -83,11 +84,11 @@ function renderMessage(msg: Message) {
     if ('status' in data && data.status === 'completed') {
       return <b>Case Completed!</b>;
     }
-    // Fallback: show as JSON
-    return <pre>{JSON.stringify(data, null, 2)}</pre>;
+    // Fallback: show as markdown
+    return <ReactMarkdown>{msg.content}</ReactMarkdown>;
   } catch {
-    // Not JSON, fallback to plain text
-    return <span>{msg.content}</span>;
+    // Not JSON, fallback to markdown
+    return <ReactMarkdown>{msg.content}</ReactMarkdown>;
   }
 }
 
@@ -189,14 +190,17 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         // Handle assistant content chunks
                         if (typeof data === "object" && data !== null && "content" in data && typeof (data as { content: string }).content === "string") {
                             const chunk = (data as { content: string }).content;
-                            turnBuffer += chunk;
                             if (streamingMessageIndex === -1) {
+                                // Remove loading message and append a new assistant message
                                 setMessages(prev => {
-                                    const newMessages = [...prev, { role: "assistant", content: "" }];
+                                    // Remove loading if present
+                                    const filtered = prev.filter(m => m.role !== 'system' || !m.content.toLowerCase().includes('loading'));
+                                    const newMessages = [...filtered, { role: "assistant", content: "" }];
                                     streamingMessageIndex = newMessages.length - 1;
                                     return newMessages;
                                 });
                             }
+                            turnBuffer += chunk;
                             setMessages(prev => {
                                 const newMessages = [...prev];
                                 if (streamingMessageIndex !== -1) {
@@ -268,14 +272,17 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     // Handle assistant content chunks
                     if (typeof data === "object" && data !== null && "content" in data && typeof (data as { content: string }).content === "string") {
                         const chunk = (data as { content: string }).content;
-                        turnBuffer += chunk;
                         if (streamingMessageIndex === -1) {
+                            // Remove loading message and append a new assistant message
                             setMessages(prev => {
-                                const newMessages = [...prev, { role: "assistant", content: "" }];
+                                // Remove loading if present
+                                const filtered = prev.filter(m => m.role !== 'system' || !m.content.toLowerCase().includes('loading'));
+                                const newMessages = [...filtered, { role: "assistant", content: "" }];
                                 streamingMessageIndex = newMessages.length - 1;
                                 return newMessages;
                             });
                         }
+                        turnBuffer += chunk;
                         setMessages(prev => {
                             const newMessages = [...prev];
                             if (streamingMessageIndex !== -1) {
