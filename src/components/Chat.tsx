@@ -298,16 +298,23 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     // Handle status completed
                     if (isStatusCompleted(data)) {
                         setAssistantMessageComplete(true);
-                        setCaseCompletionData({
-                            is_completed: true,
-                            feedback: (data as { feedback: string }).feedback,
-                            score: (data as { score: number }).score,
-                            // ...add any other fields as needed
-                        });
-                        setCaseCompleted(true);
-                        setShowActions(true);
-                        if (onCaseComplete) onCaseComplete();
-                        return;
+                        if (
+                          typeof data === "object" &&
+                          data !== null &&
+                          "feedback" in data && typeof (data as { feedback: unknown }).feedback === "string" &&
+                          "score" in data && typeof (data as { score: unknown }).score === "number"
+                        ) {
+                            setCaseCompletionData({
+                                is_completed: true,
+                                feedback: (data as { feedback: string }).feedback,
+                                score: (data as { score: number }).score,
+                                // ...add any other fields as needed
+                            });
+                            setCaseCompleted(true);
+                            setShowActions(true);
+                            if (onCaseComplete) onCaseComplete();
+                            return;
+                        }
                     }
                     // Handle errors
                     if (isErrorMessage(data)) {
