@@ -185,7 +185,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         setMessages([{ role: "system", content: "⏳ Loading case..." }]);
         setAssistantMessageComplete(false);
         let accumulatedText = "";
-        let firstMessageReceived = false;
+        let streamingMessageIndex = -1;
         const start = async () => {
             try {
                 const decodedCondition = decodeURIComponent(condition);
@@ -193,28 +193,22 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     "https://ukmla-case-tutor-api.onrender.com/start_case",
                     { condition: decodedCondition },
                     (data: unknown) => {
-                        // Stream all { content: ... } chunks into a single assistant message
+                        // Stream all { content: ... } chunks into a new assistant message
                         if (typeof data === "object" && data !== null && "content" in data && typeof (data as { content: string }).content === "string") {
-                            if (!firstMessageReceived) {
-                                setMessages([]);
-                                firstMessageReceived = true;
+                            if (streamingMessageIndex === -1) {
+                                // Append a new assistant message for this response
+                                setMessages(prev => {
+                                    const newMessages = [...prev, { role: "assistant", content: "" }];
+                                    streamingMessageIndex = newMessages.length - 1;
+                                    return newMessages;
+                                });
                             }
                             accumulatedText += (data as { content: string }).content;
                             setMessages(prev => {
                                 const newMessages = [...prev];
-                                // Find the last assistant message or create a new one
-                                let lastAssistantIndex = -1;
-                                for (let i = newMessages.length - 1; i >= 0; i--) {
-                                    if (newMessages[i].role === "assistant") {
-                                        lastAssistantIndex = i;
-                                        break;
-                                    }
-                                }
-                                if (lastAssistantIndex === -1) {
-                                    newMessages.push({ role: "assistant", content: accumulatedText });
-                                } else {
-                                    newMessages[lastAssistantIndex] = {
-                                        ...newMessages[lastAssistantIndex],
+                                if (streamingMessageIndex !== -1) {
+                                    newMessages[streamingMessageIndex] = {
+                                        ...newMessages[streamingMessageIndex],
                                         content: accumulatedText
                                     };
                                 }
@@ -227,12 +221,27 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             setAssistantMessageComplete(true);
                             return;
                         }
+                        // Handle feedback/score (case completion)
+                        if (
+                            typeof data === "object" &&
+                            data !== null &&
+                            "feedback" in data && typeof (data as { feedback: unknown }).feedback === "string" &&
+                            "score" in data && typeof (data as { score: unknown }).score === "number"
+                        ) {
+                            setCaseCompletionData({
+                                is_completed: true,
+                                feedback: (data as { feedback: string }).feedback,
+                                score: (data as { score: number }).score,
+                            });
+                            setCaseCompleted(true);
+                            setShowActions(true);
+                            return;
+                        }
                         // Handle errors
                         if (isErrorMessage(data)) {
                             appendMessage({ role: "system", content: JSON.stringify((data as { error: unknown }).error) });
                             return;
                         }
-                        // ...other handlers as needed
                     },
                     (headers) => {
                         const id = headers.get("X-Thread-Id");
@@ -261,33 +270,28 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         appendMessage(userMsg);
         setLoading(true);
         let accumulatedText = "";
-        let firstMessageReceived = false;
+        let streamingMessageIndex = -1;
         try {
             await streamPost(
                 "https://ukmla-case-tutor-api.onrender.com/continue_case",
                 { thread_id: threadId, user_input: messageToSend },
                 (data: unknown) => {
-                    // Stream all { content: ... } chunks into a single assistant message
+                    // Stream all { content: ... } chunks into a new assistant message
                     if (typeof data === "object" && data !== null && "content" in data && typeof (data as { content: string }).content === "string") {
-                        if (!firstMessageReceived) {
-                            firstMessageReceived = true;
+                        if (streamingMessageIndex === -1) {
+                            // Append a new assistant message for this response
+                            setMessages(prev => {
+                                const newMessages = [...prev, { role: "assistant", content: "" }];
+                                streamingMessageIndex = newMessages.length - 1;
+                                return newMessages;
+                            });
                         }
                         accumulatedText += (data as { content: string }).content;
                         setMessages(prev => {
                             const newMessages = [...prev];
-                            // Find the last assistant message or create a new one
-                            let lastAssistantIndex = -1;
-                            for (let i = newMessages.length - 1; i >= 0; i--) {
-                                if (newMessages[i].role === "assistant") {
-                                    lastAssistantIndex = i;
-                                    break;
-                                }
-                            }
-                            if (lastAssistantIndex === -1) {
-                                newMessages.push({ role: "assistant", content: accumulatedText });
-                            } else {
-                                newMessages[lastAssistantIndex] = {
-                                    ...newMessages[lastAssistantIndex],
+                            if (streamingMessageIndex !== -1) {
+                                newMessages[streamingMessageIndex] = {
+                                    ...newMessages[streamingMessageIndex],
                                     content: accumulatedText
                                 };
                             }
@@ -298,30 +302,29 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     // Handle status completed
                     if (isStatusCompleted(data)) {
                         setAssistantMessageComplete(true);
-                        if (
-                          typeof data === "object" &&
-                          data !== null &&
-                          "feedback" in data && typeof (data as { feedback: unknown }).feedback === "string" &&
-                          "score" in data && typeof (data as { score: unknown }).score === "number"
-                        ) {
-                            setCaseCompletionData({
-                                is_completed: true,
-                                feedback: (data as { feedback: string }).feedback,
-                                score: (data as { score: number }).score,
-                                // ...add any other fields as needed
-                            });
-                            setCaseCompleted(true);
-                            setShowActions(true);
-                            if (onCaseComplete) onCaseComplete();
-                            return;
-                        }
+                        return;
+                    }
+                    // Handle feedback/score (case completion)
+                    if (
+                        typeof data === "object" &&
+                        data !== null &&
+                        "feedback" in data && typeof (data as { feedback: unknown }).feedback === "string" &&
+                        "score" in data && typeof (data as { score: unknown }).score === "number"
+                    ) {
+                        setCaseCompletionData({
+                            is_completed: true,
+                            feedback: (data as { feedback: string }).feedback,
+                            score: (data as { score: number }).score,
+                        });
+                        setCaseCompleted(true);
+                        setShowActions(true);
+                        return;
                     }
                     // Handle errors
                     if (isErrorMessage(data)) {
                         appendMessage({ role: "system", content: JSON.stringify((data as { error: unknown }).error) });
                         return;
                     }
-                    // ...other handlers as needed
                 }
             );
         } catch (err) {
