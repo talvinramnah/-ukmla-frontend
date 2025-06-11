@@ -342,9 +342,6 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 <h2 style={{ fontSize: "24px", marginBottom: "20px", textAlign: leftAlignTitle ? 'left' : 'center' }}>
                     {decodeURIComponent(condition)}
                 </h2>
-                <div style={{ fontSize: '16px', color: '#ffd5a6', marginBottom: '16px' }}>
-                  <strong>Case Focus:</strong> {caseFocus.charAt(0).toUpperCase() + caseFocus.slice(1)}
-                </div>
                 
                 <div style={{ width: "100%", maxWidth: "800px" }}>
                     {messages
