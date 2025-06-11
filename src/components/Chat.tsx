@@ -34,14 +34,6 @@ interface CaseCompletionData {
 }
 
 // Add helper type guards for backend JSON message types
-function isStatusCompleted(data: unknown): data is { status: 'completed' } {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    (data as { status?: string }).status === 'completed'
-  );
-}
-
 function isErrorMessage(data: unknown): data is { error: unknown } {
   return (
     typeof data === 'object' &&
@@ -223,11 +215,11 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             return;
                         }
                         // Handle case_completed
-                        if (typeof data === "object" && data !== null && (data as any).type === "case_completed") {
+                        if (typeof data === "object" && data !== null && (data as { type: string }).type === "case_completed") {
                             setCaseCompletionData({
                                 is_completed: true,
-                                feedback: (data as any).feedback,
-                                score: (data as any).score,
+                                feedback: (data as { feedback: string }).feedback,
+                                score: (data as { score: number }).score,
                             });
                             setCaseCompleted(true);
                             setShowActions(true);
@@ -302,11 +294,11 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         return;
                     }
                     // Handle case_completed
-                    if (typeof data === "object" && data !== null && (data as any).type === "case_completed") {
+                    if (typeof data === "object" && data !== null && (data as { type: string }).type === "case_completed") {
                         setCaseCompletionData({
                             is_completed: true,
-                            feedback: (data as any).feedback,
-                            score: (data as any).score,
+                            feedback: (data as { feedback: string }).feedback,
+                            score: (data as { score: number }).score,
                         });
                         setCaseCompleted(true);
                         setShowActions(true);
