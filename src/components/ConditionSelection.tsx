@@ -51,6 +51,7 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
   const [hoveredCondition, setHoveredCondition] = useState<string | null>(null);
   const [investigation, setInvestigation] = useState(true);
   const [management, setManagement] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -189,6 +190,11 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
   }
 
   const handleSelectCondition = (condition: string) => {
+    if (!investigation && !management) {
+      setErrorMsg('Please select at least 1');
+      return;
+    }
+    setErrorMsg(null);
     const case_focus =
       investigation && management
         ? 'both'
@@ -303,13 +309,98 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-        <label>
-          <input type="checkbox" checked={investigation} onChange={() => setInvestigation(v => !v)} /> Investigation
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', alignItems: 'center' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontFamily: 'inherit', fontSize: 16 }}>Investigation</span>
+          <span style={{ position: 'relative', display: 'inline-block', width: 48, height: 28 }}>
+            <input
+              type="checkbox"
+              checked={investigation}
+              onChange={() => {
+                setInvestigation(v => {
+                  if (!management && v) setErrorMsg(null);
+                  return !v;
+                });
+              }}
+              style={{ opacity: 0, width: 0, height: 0 }}
+            />
+            <span
+              style={{
+                position: 'absolute',
+                cursor: 'pointer',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: investigation ? '#2ecc40' : '#888',
+                borderRadius: 20,
+                transition: 'background 0.2s',
+                boxShadow: investigation ? '0 0 6px #2ecc40' : '0 0 4px #222',
+              }}
+            >
+              <span
+                style={{
+                  position: 'absolute',
+                  left: investigation ? 24 : 2,
+                  top: 2,
+                  width: 24,
+                  height: 24,
+                  background: '#fff',
+                  borderRadius: '50%',
+                  boxShadow: '0 1px 4px #0003',
+                  transition: 'left 0.2s',
+                }}
+              />
+            </span>
+          </span>
         </label>
-        <label>
-          <input type="checkbox" checked={management} onChange={() => setManagement(v => !v)} /> Management
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontFamily: 'inherit', fontSize: 16 }}>Management</span>
+          <span style={{ position: 'relative', display: 'inline-block', width: 48, height: 28 }}>
+            <input
+              type="checkbox"
+              checked={management}
+              onChange={() => {
+                setManagement(v => {
+                  if (!investigation && v) setErrorMsg(null);
+                  return !v;
+                });
+              }}
+              style={{ opacity: 0, width: 0, height: 0 }}
+            />
+            <span
+              style={{
+                position: 'absolute',
+                cursor: 'pointer',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: management ? '#2ecc40' : '#888',
+                borderRadius: 20,
+                transition: 'background 0.2s',
+                boxShadow: management ? '0 0 6px #2ecc40' : '0 0 4px #222',
+              }}
+            >
+              <span
+                style={{
+                  position: 'absolute',
+                  left: management ? 24 : 2,
+                  top: 2,
+                  width: 24,
+                  height: 24,
+                  background: '#fff',
+                  borderRadius: '50%',
+                  boxShadow: '0 1px 4px #0003',
+                  transition: 'left 0.2s',
+                }}
+              />
+            </span>
+          </span>
         </label>
+        {errorMsg && (
+          <span style={{ color: '#ff6b6b', fontSize: 14, marginLeft: 12 }}>{errorMsg}</span>
+        )}
       </div>
 
       <div style={styles.gridContainer} className="condition-grid-responsive">
