@@ -182,62 +182,56 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     // Refactored streamPost handler for /start_case
     useEffect(() => {
         if (!condition || !accessToken || threadId) return;
-        // Clear all previous messages and show loading
         setMessages([{ role: "system", content: "⏳ Loading case..." }]);
         setAssistantMessageComplete(false);
-        let accumulatedText = "";
+        let turnBuffer = "";
         let streamingMessageIndex = -1;
         const start = async () => {
             try {
                 const decodedCondition = decodeURIComponent(condition);
-                // Clear all previous messages before streaming new case
                 setMessages([{ role: "system", content: "⏳ Loading case..." }]);
                 await streamPost(
                     "https://ukmla-case-tutor-api.onrender.com/start_case",
                     { condition: decodedCondition },
                     (data: unknown) => {
-                        // Stream all { content: ... } chunks into a new assistant message
+                        // Handle assistant content chunks
                         if (typeof data === "object" && data !== null && "content" in data && typeof (data as { content: string }).content === "string") {
+                            const chunk = (data as { content: string }).content;
+                            turnBuffer += chunk;
                             if (streamingMessageIndex === -1) {
-                                // Append a new assistant message for this response
                                 setMessages(prev => {
                                     const newMessages = [...prev, { role: "assistant", content: "" }];
                                     streamingMessageIndex = newMessages.length - 1;
                                     return newMessages;
                                 });
                             }
-                            accumulatedText += (data as { content: string }).content;
                             setMessages(prev => {
                                 const newMessages = [...prev];
                                 if (streamingMessageIndex !== -1) {
                                     newMessages[streamingMessageIndex] = {
                                         ...newMessages[streamingMessageIndex],
-                                        content: accumulatedText
+                                        content: turnBuffer
                                     };
                                 }
                                 return newMessages;
                             });
                             return;
                         }
-                        // Handle status completed
-                        if (isStatusCompleted(data)) {
+                        // Handle turn_complete
+                        if (typeof data === "object" && data !== null && "turn_complete" in data) {
                             setAssistantMessageComplete(true);
                             return;
                         }
-                        // Handle feedback/score (case completion)
-                        if (
-                            typeof data === "object" &&
-                            data !== null &&
-                            "feedback" in data && typeof (data as { feedback: unknown }).feedback === "string" &&
-                            "score" in data && typeof (data as { score: unknown }).score === "number"
-                        ) {
+                        // Handle case_completed
+                        if (typeof data === "object" && data !== null && (data as any).type === "case_completed") {
                             setCaseCompletionData({
                                 is_completed: true,
-                                feedback: (data as { feedback: string }).feedback,
-                                score: (data as { score: number }).score,
+                                feedback: (data as any).feedback,
+                                score: (data as any).score,
                             });
                             setCaseCompleted(true);
                             setShowActions(true);
+                            setAssistantMessageComplete(false);
                             return;
                         }
                         // Handle errors
@@ -272,55 +266,51 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         setAssistantMessageComplete(false);
         appendMessage(userMsg);
         setLoading(true);
-        let accumulatedText = "";
+        let turnBuffer = "";
         let streamingMessageIndex = -1;
         try {
             await streamPost(
                 "https://ukmla-case-tutor-api.onrender.com/continue_case",
                 { thread_id: threadId, user_input: messageToSend },
                 (data: unknown) => {
-                    // Stream all { content: ... } chunks into a new assistant message
+                    // Handle assistant content chunks
                     if (typeof data === "object" && data !== null && "content" in data && typeof (data as { content: string }).content === "string") {
+                        const chunk = (data as { content: string }).content;
+                        turnBuffer += chunk;
                         if (streamingMessageIndex === -1) {
-                            // Append a new assistant message for this response
                             setMessages(prev => {
                                 const newMessages = [...prev, { role: "assistant", content: "" }];
                                 streamingMessageIndex = newMessages.length - 1;
                                 return newMessages;
                             });
                         }
-                        accumulatedText += (data as { content: string }).content;
                         setMessages(prev => {
                             const newMessages = [...prev];
                             if (streamingMessageIndex !== -1) {
                                 newMessages[streamingMessageIndex] = {
                                     ...newMessages[streamingMessageIndex],
-                                    content: accumulatedText
+                                    content: turnBuffer
                                 };
                             }
                             return newMessages;
                         });
                         return;
                     }
-                    // Handle status completed
-                    if (isStatusCompleted(data)) {
+                    // Handle turn_complete
+                    if (typeof data === "object" && data !== null && "turn_complete" in data) {
                         setAssistantMessageComplete(true);
                         return;
                     }
-                    // Handle feedback/score (case completion)
-                    if (
-                        typeof data === "object" &&
-                        data !== null &&
-                        "feedback" in data && typeof (data as { feedback: unknown }).feedback === "string" &&
-                        "score" in data && typeof (data as { score: unknown }).score === "number"
-                    ) {
+                    // Handle case_completed
+                    if (typeof data === "object" && data !== null && (data as any).type === "case_completed") {
                         setCaseCompletionData({
                             is_completed: true,
-                            feedback: (data as { feedback: string }).feedback,
-                            score: (data as { score: number }).score,
+                            feedback: (data as any).feedback,
+                            score: (data as any).score,
                         });
                         setCaseCompleted(true);
                         setShowActions(true);
+                        setAssistantMessageComplete(false);
                         return;
                     }
                     // Handle errors
