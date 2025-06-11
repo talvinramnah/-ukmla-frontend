@@ -225,9 +225,6 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         // Handle status completed
                         if (isStatusCompleted(data)) {
                             setAssistantMessageComplete(true);
-                            setCaseCompleted(true);
-                            setShowActions(true);
-                            if (onCaseComplete) onCaseComplete();
                             return;
                         }
                         // Handle errors
@@ -301,6 +298,12 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     // Handle status completed
                     if (isStatusCompleted(data)) {
                         setAssistantMessageComplete(true);
+                        setCaseCompletionData({
+                            is_completed: true,
+                            feedback: (data as { feedback: string }).feedback,
+                            score: (data as { score: number }).score,
+                            // ...add any other fields as needed
+                        });
                         setCaseCompleted(true);
                         setShowActions(true);
                         if (onCaseComplete) onCaseComplete();
