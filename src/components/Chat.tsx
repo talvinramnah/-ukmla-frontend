@@ -59,7 +59,7 @@ function parseFeedback(feedback: string): StructuredFeedback | null {
       }
       const result = (obj['result'] || '').toLowerCase();
       return { summary, positive, negative, result };
-    } catch (e) {
+    } catch {
       // Parsing failed, fallback
       return null;
     }
