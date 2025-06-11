@@ -212,7 +212,8 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         if (!condition || !accessToken || threadId) return;
         setMessages([{ role: "system", content: "⏳ Loading case..." }]);
         setAssistantMessageComplete(false);
-        const assistantMessageTimeout: ReturnType<typeof setTimeout> | null = null;
+        let accumulatedText = "";
+        let firstMessageReceived = false;
         const start = async () => {
             try {
                 const decodedCondition = decodeURIComponent(condition);
@@ -220,21 +221,49 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     "https://ukmla-case-tutor-api.onrender.com/start_case",
                     { condition: decodedCondition },
                     (data: unknown) => {
-                        // Handle all structured JSON messages
-                        if (isInitialCaseMessage(data)) {
-                          appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
-                        } else if (isQuestionMessage(data)) {
-                          appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
-                        } else if (isFeedbackMessage(data)) {
-                          appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
-                        } else if (isStatusCompleted(data)) {
-                          setAssistantMessageComplete(true);
-                          setCaseCompleted(true);
-                          setShowActions(true);
-                          if (onCaseComplete) onCaseComplete();
-                        } else if (isErrorMessage(data)) {
-                          appendMessage({ role: "system", content: JSON.stringify(data.error) });
+                        // Stream all { content: ... } chunks into a single assistant message
+                        if (typeof data === "object" && data !== null && typeof (data as any).content === "string") {
+                            if (!firstMessageReceived) {
+                                setMessages([]);
+                                firstMessageReceived = true;
+                            }
+                            accumulatedText += (data as any).content;
+                            setMessages(prev => {
+                                const newMessages = [...prev];
+                                // Find the last assistant message or create a new one
+                                let lastAssistantIndex = -1;
+                                for (let i = newMessages.length - 1; i >= 0; i--) {
+                                    if (newMessages[i].role === "assistant") {
+                                        lastAssistantIndex = i;
+                                        break;
+                                    }
+                                }
+                                if (lastAssistantIndex === -1) {
+                                    newMessages.push({ role: "assistant", content: accumulatedText });
+                                } else {
+                                    newMessages[lastAssistantIndex] = {
+                                        ...newMessages[lastAssistantIndex],
+                                        content: accumulatedText
+                                    };
+                                }
+                                return newMessages;
+                            });
+                            return;
                         }
+                        // Handle status completed
+                        if (isStatusCompleted(data)) {
+                            setAssistantMessageComplete(true);
+                            setCaseCompleted(true);
+                            setShowActions(true);
+                            if (onCaseComplete) onCaseComplete();
+                            return;
+                        }
+                        // Handle errors
+                        if (isErrorMessage(data)) {
+                            appendMessage({ role: "system", content: JSON.stringify((data as any).error) });
+                            return;
+                        }
+                        // ...other handlers as needed
                     },
                     (headers) => {
                         const id = headers.get("X-Thread-Id");
@@ -250,9 +279,6 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
             }
         };
         start();
-        return () => {
-            if (assistantMessageTimeout) clearTimeout(assistantMessageTimeout);
-        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [condition, accessToken, threadId]);
 
@@ -265,23 +291,55 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         setAssistantMessageComplete(false);
         appendMessage(userMsg);
         setLoading(true);
+        let accumulatedText = "";
+        let firstMessageReceived = false;
         try {
             await streamPost(
                 "https://ukmla-case-tutor-api.onrender.com/continue_case",
                 { thread_id: threadId, user_input: messageToSend },
                 (data: unknown) => {
-                  if (isQuestionMessage(data)) {
-                    appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
-                  } else if (isFeedbackMessage(data)) {
-                    appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
-                  } else if (isStatusCompleted(data)) {
-                    setAssistantMessageComplete(true);
-                    setCaseCompleted(true);
-                    setShowActions(true);
-                    if (onCaseComplete) onCaseComplete();
-                  } else if (isErrorMessage(data)) {
-                    appendMessage({ role: "system", content: JSON.stringify(data.error) });
-                  }
+                    // Stream all { content: ... } chunks into a single assistant message
+                    if (typeof data === "object" && data !== null && typeof (data as any).content === "string") {
+                        if (!firstMessageReceived) {
+                            firstMessageReceived = true;
+                        }
+                        accumulatedText += (data as any).content;
+                        setMessages(prev => {
+                            const newMessages = [...prev];
+                            // Find the last assistant message or create a new one
+                            let lastAssistantIndex = -1;
+                            for (let i = newMessages.length - 1; i >= 0; i--) {
+                                if (newMessages[i].role === "assistant") {
+                                    lastAssistantIndex = i;
+                                    break;
+                                }
+                            }
+                            if (lastAssistantIndex === -1) {
+                                newMessages.push({ role: "assistant", content: accumulatedText });
+                            } else {
+                                newMessages[lastAssistantIndex] = {
+                                    ...newMessages[lastAssistantIndex],
+                                    content: accumulatedText
+                                };
+                            }
+                            return newMessages;
+                        });
+                        return;
+                    }
+                    // Handle status completed
+                    if (isStatusCompleted(data)) {
+                        setAssistantMessageComplete(true);
+                        setCaseCompleted(true);
+                        setShowActions(true);
+                        if (onCaseComplete) onCaseComplete();
+                        return;
+                    }
+                    // Handle errors
+                    if (isErrorMessage(data)) {
+                        appendMessage({ role: "system", content: JSON.stringify((data as any).error) });
+                        return;
+                    }
+                    // ...other handlers as needed
                 }
             );
         } catch (err) {
