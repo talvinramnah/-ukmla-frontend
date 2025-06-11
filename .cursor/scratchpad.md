@@ -1197,3 +1197,57 @@ Successfully resolved Vercel build failure due to unused variables:
 4. **Files Modified**: `src/components/Chat.tsx` - removed 5 unused variable assignments
 5. **Build Status**: ✅ `npm run build` now passes successfully with no errors
 6. **Deployment Ready**: Application is now ready for successful Vercel deployment
+
+## Background and Motivation
+The backend for the `start_case` and `continue_case` endpoints now returns feedback in a new structured format when a case is completed. The new format is:
+
+[CASE COMPLETED]  
+{{  
+  "feedback summary": "Brief feedback on overall performance",  
+  "feedback details positive": "2 bullet points of positive feedback",
+  "feedback details negative": "2 bullet points of negative feedback",
+  "result": pass or fail
+}}
+
+The current feedback card in `Chat.tsx` expects a different structure (single feedback string and score). We need to update the UI to parse and display the new structure, including summary, positive/negative bullet points, and pass/fail result.
+
+## Key Challenges and Analysis
+- **Parsing:** The feedback is now a JSON object embedded in the assistant's message, possibly as a string. We need to reliably extract and parse this block.
+- **Backward Compatibility:** Some cases may still return the old format. The UI should handle both gracefully.
+- **UI Update:** The feedback card must show:
+  - Feedback summary (as a short paragraph)
+  - Two positive bullet points
+  - Two negative bullet points
+  - Pass/Fail result (with clear visual indicator)
+- **Error Handling:** If parsing fails, show a fallback message.
+
+## High-level Task Breakdown
+1. **Update Feedback Parsing Logic**
+   - Detect and extract the new feedback JSON block from the assistant's message when a case is completed.
+   - Parse the JSON and store it in state.
+   - Fallback to old format if parsing fails.
+   - **Success Criteria:** The correct feedback structure is extracted and parsed for both new and old formats.
+
+2. **Update Feedback Card UI**
+   - Display feedback summary, positive and negative bullet points, and pass/fail result.
+   - Add visual cues for pass/fail (e.g., color, icon).
+   - **Success Criteria:** The card displays all new fields clearly and attractively.
+
+3. **Backward Compatibility Handling**
+   - If the old format is detected, display as before.
+   - **Success Criteria:** No errors or blank cards for old cases.
+
+4. **Testing**
+   - Add/modify tests to cover both feedback formats and error cases.
+   - **Success Criteria:** All tests pass and manual testing confirms correct display.
+
+## Project Status Board
+- [x] Update Feedback Parsing Logic
+- [x] Update Feedback Card UI
+- [x] Backward Compatibility Handling
+- [ ] Testing
+
+## Executor's Feedback or Assistance Requests
+- [2025-06-02] Updated feedback parsing logic in Chat.tsx. Now detects and parses the new structured feedback format, and stores it in state. Fallback to old format is implemented. Next: Update the feedback card UI to display the new structure (summary, positive/negative points, pass/fail result).
+- [2025-06-02] Updated feedback card UI in Chat.tsx. The card now displays summary, positive/negative bullet points, and pass/fail result for the new format, and falls back to the old format if needed. Next: Verify backward compatibility and test both feedback formats.
+- [2025-06-02] Manual and code review confirm backward compatibility: both new structured feedback and old string feedback are supported and displayed correctly. Next: Testing (TDD/manual) to confirm correct display and error handling.

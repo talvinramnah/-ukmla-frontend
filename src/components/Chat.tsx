@@ -21,10 +21,59 @@ interface Message {
   content: string;
 }
 
+// Add new type for structured feedback
+interface StructuredFeedback {
+  summary: string;
+  positive: string[];
+  negative: string[];
+  result: 'pass' | 'fail' | string;
+}
+
+// Helper to parse feedback from string (new or old format)
+function parseFeedback(feedback: string): StructuredFeedback | null {
+  // Try to extract JSON block after [CASE COMPLETED]
+  const match = feedback.match(/\[CASE COMPLETED\][^\{]*({[\s\S]+})/i);
+  let jsonStr = '';
+  if (match && match[1]) {
+    jsonStr = match[1];
+  } else if (feedback.trim().startsWith('{')) {
+    jsonStr = feedback.trim();
+  }
+  if (jsonStr) {
+    try {
+      const obj = JSON.parse(jsonStr);
+      // Accept both snake_case and space keys
+      const summary = obj['feedback summary'] || obj['feedback_summary'] || '';
+      // Split bullet points by line or return as array
+      let positive: string[] = [];
+      let negative: string[] = [];
+      if (typeof obj['feedback details positive'] === 'string') {
+        positive = obj['feedback details positive'].split(/\n|\r|•|\-/).map(s => s.trim()).filter(Boolean);
+      } else if (Array.isArray(obj['feedback details positive'])) {
+        positive = obj['feedback details positive'];
+      }
+      if (typeof obj['feedback details negative'] === 'string') {
+        negative = obj['feedback details negative'].split(/\n|\r|•|\-/).map(s => s.trim()).filter(Boolean);
+      } else if (Array.isArray(obj['feedback details negative'])) {
+        negative = obj['feedback details negative'];
+      }
+      const result = (obj['result'] || '').toLowerCase();
+      return { summary, positive, negative, result };
+    } catch (e) {
+      // Parsing failed, fallback
+      return null;
+    }
+  }
+  // Not new format
+  return null;
+}
+
+// Update CaseCompletionData to allow new feedback structure
 interface CaseCompletionData {
   is_completed: boolean;
   feedback: string;
   score: number;
+  structuredFeedback?: StructuredFeedback | null;
   thread_metadata?: {
     condition: string;
     ward: string;
@@ -186,6 +235,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                                 is_completed: true,
                                 feedback: (data as { feedback: string }).feedback,
                                 score: (data as { score: number }).score,
+                                structuredFeedback: parseFeedback((data as { feedback: string }).feedback),
                             });
                             setCaseCompleted(true);
                             setShowActions(true);
@@ -276,6 +326,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             is_completed: true,
                             feedback: (data as { feedback: string }).feedback,
                             score: (data as { score: number }).score,
+                            structuredFeedback: parseFeedback((data as { feedback: string }).feedback),
                         });
                         setCaseCompleted(true);
                         setShowActions(true);
@@ -421,48 +472,105 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         }}>
                             📋 Case Complete
                         </div>
-                        
-                        <div style={{
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            gap: "20px",
-                            marginBottom: "16px",
-                            flexWrap: "wrap"
-                        }}>
-                            <div style={{
-                                backgroundColor: "var(--color-accent)",
-                                color: "#fff",
-                                padding: "12px 20px",
-                                borderRadius: "8px",
-                                fontSize: "20px",
-                                fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
-                                fontWeight: "bold"
-                            }}>
-                                ✅ Score: {caseCompletionData.score}/10
-                            </div>
-                        </div>
-                        
-                        <div style={{
-                            backgroundColor: "rgba(0,0,0,0.3)",
-                            padding: "16px",
-                            borderRadius: "8px",
-                            fontSize: "18px",
-                            color: "var(--color-text)",
-                            fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
-                            lineHeight: "1.4",
-                            textAlign: "left"
-                        }}>
-                            <div style={{ 
-                                fontSize: "20px", 
-                                color: "var(--color-accent)", 
-                                marginBottom: "8px",
-                                fontWeight: "bold"
-                            }}>
-                                📝 Feedback:
-                            </div>
-                            {caseCompletionData.feedback}
-                        </div>
+                        {caseCompletionData.structuredFeedback ? (
+                            <>
+                                <div style={{
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    gap: "20px",
+                                    marginBottom: "16px",
+                                    flexWrap: "wrap"
+                                }}>
+                                    <div style={{
+                                        backgroundColor: caseCompletionData.structuredFeedback.result === 'pass' ? '#1bbf4c' : '#d77400',
+                                        color: "#fff",
+                                        padding: "12px 20px",
+                                        borderRadius: "8px",
+                                        fontSize: "20px",
+                                        fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
+                                        fontWeight: "bold"
+                                    }}>
+                                        {caseCompletionData.structuredFeedback.result === 'pass' ? '✅ Pass' : '❌ Fail'}
+                                    </div>
+                                </div>
+                                <div style={{
+                                    backgroundColor: "rgba(0,0,0,0.3)",
+                                    padding: "16px",
+                                    borderRadius: "8px",
+                                    fontSize: "18px",
+                                    color: "var(--color-text)",
+                                    fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
+                                    lineHeight: "1.4",
+                                    textAlign: "left"
+                                }}>
+                                    <div style={{
+                                        fontSize: "20px",
+                                        color: "var(--color-accent)",
+                                        marginBottom: "8px",
+                                        fontWeight: "bold"
+                                    }}>
+                                        📝 Feedback Summary:
+                                    </div>
+                                    <div style={{ marginBottom: 12 }}>{caseCompletionData.structuredFeedback.summary}</div>
+                                    <div style={{ fontWeight: 'bold', color: 'var(--color-accent)', marginBottom: 4 }}>👍 Positive:</div>
+                                    <ul style={{ marginBottom: 12 }}>
+                                        {caseCompletionData.structuredFeedback.positive.map((item, idx) => (
+                                            <li key={idx}>{item}</li>
+                                        ))}
+                                    </ul>
+                                    <div style={{ fontWeight: 'bold', color: 'var(--color-accent)', marginBottom: 4 }}>👎 To Improve:</div>
+                                    <ul>
+                                        {caseCompletionData.structuredFeedback.negative.map((item, idx) => (
+                                            <li key={idx}>{item}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div style={{
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    gap: "20px",
+                                    marginBottom: "16px",
+                                    flexWrap: "wrap"
+                                }}>
+                                    <div style={{
+                                        backgroundColor: "var(--color-accent)",
+                                        color: "#fff",
+                                        padding: "12px 20px",
+                                        borderRadius: "8px",
+                                        fontSize: "20px",
+                                        fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
+                                        fontWeight: "bold"
+                                    }}>
+                                        ✅ Score: {caseCompletionData.score}/10
+                                    </div>
+                                </div>
+                                <div style={{
+                                    backgroundColor: "rgba(0,0,0,0.3)",
+                                    padding: "16px",
+                                    borderRadius: "8px",
+                                    fontSize: "18px",
+                                    color: "var(--color-text)",
+                                    fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
+                                    lineHeight: "1.4",
+                                    textAlign: "left"
+                                }}>
+                                    <div style={{
+                                        fontSize: "20px",
+                                        color: "var(--color-accent)",
+                                        marginBottom: "8px",
+                                        fontWeight: "bold"
+                                    }}>
+                                        📝 Feedback:
+                                    </div>
+                                    {caseCompletionData.feedback}
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
                 
