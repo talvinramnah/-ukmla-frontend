@@ -22,12 +22,8 @@ interface Message {
 
 interface CaseCompletionData {
   is_completed: boolean;
-  result: 'pass' | 'fail';
-  feedback: {
-    what_went_well: { management: string; investigation: string; other: string };
-    what_can_be_improved: { management: string; investigation: string; other: string };
-    actionable_points: string[];
-  };
+  feedback: string;
+  score: number;
   thread_metadata?: {
     condition: string;
     ward: string;
@@ -35,22 +31,6 @@ interface CaseCompletionData {
   };
   next_case_variation?: number;
   available_actions?: string[];
-}
-
-// Add new type definitions for the free text streaming format
-interface TextChunkMessage {
-  type: 'text_chunk';
-  content: string;
-}
-
-interface CompletedMessage {
-  type: 'completed';
-  full_text: string;
-}
-
-interface ErrorMessage {
-  type: 'error';
-  message: string;
 }
 
 // Add helper type guards for backend JSON message types
@@ -73,34 +53,12 @@ function isQuestionMessage(data: unknown): data is { question: unknown; attempt:
   );
 }
 
-function isFeedbackMessage(data: unknown): data is { 
-  result: 'pass' | 'fail'; 
-  feedback: {
-    what_went_well: { management: string; investigation: string; other: string };
-    what_can_be_improved: { management: string; investigation: string; other: string };
-    actionable_points: string[];
-  }
-} {
-  if (typeof data !== 'object' || data === null) {
-    return false;
-  }
-  
-  const obj = data as Record<string, unknown>;
-  
-  if (!('result' in obj) || !('feedback' in obj)) {
-    return false;
-  }
-  
-  if (typeof obj.feedback !== 'object' || obj.feedback === null) {
-    return false;
-  }
-  
-  const feedback = obj.feedback as Record<string, unknown>;
-  
+function isFeedbackMessage(data: unknown): data is { result: unknown; feedback: unknown } {
   return (
-    'what_went_well' in feedback &&
-    'what_can_be_improved' in feedback &&
-    'actionable_points' in feedback
+    typeof data === 'object' &&
+    data !== null &&
+    'result' in data &&
+    'feedback' in data
   );
 }
 
@@ -110,27 +68,6 @@ function isStatusCompleted(data: unknown): data is { status: 'completed' } {
     data !== null &&
     (data as { status?: string }).status === 'completed'
   );
-}
-
-function isStreamingProgress(data: unknown): data is { streaming: unknown } {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'streaming' in data
-  );
-}
-
-// Add type guards for the new format
-function isTextChunk(data: unknown): data is TextChunkMessage {
-  return typeof data === 'object' && data !== null && 'type' in data && (data as { type: string }).type === 'text_chunk';
-}
-
-function isCompletedMessage(data: unknown): data is CompletedMessage {
-  return typeof data === 'object' && data !== null && 'type' in data && (data as { type: string }).type === 'completed';
-}
-
-function isErrorMessageNew(data: unknown): data is ErrorMessage {
-  return typeof data === 'object' && data !== null && 'type' in data && (data as { type: string }).type === 'error';
 }
 
 function isErrorMessage(data: unknown): data is { error: unknown } {
@@ -144,10 +81,8 @@ function isErrorMessage(data: unknown): data is { error: unknown } {
 // Add this function above the Chat component
 function renderMessage(msg: Message) {
   try {
-    // Try to parse as JSON first (for backwards compatibility)
     const data = JSON.parse(msg.content);
-    
-    // Initial case message (demographics, presenting complaint, ICE)
+    // Demographics/Initial Case
     if ('demographics' in data && 'presenting_complaint' in data) {
       return (
         <div>
@@ -171,27 +106,24 @@ function renderMessage(msg: Message) {
         </div>
       );
     }
-    // New structured feedback - don't render in chat, will be handled by feedback card
-    if ('result' in data && 'feedback' in data) {
-      return null; // Don't render feedback in chat
+    // Feedback/Score
+    if ('feedback' in data && 'score' in data) {
+      return (
+        <div>
+          <b>Feedback:</b> {data.feedback}
+          <div><b>Score:</b> {data.score}/10</div>
+        </div>
+      );
     }
     // Status
     if ('status' in data && data.status === 'completed') {
       return <b>Case Completed!</b>;
     }
-    // Error messages
-    if ('error' in data) {
-      return (
-        <div style={{ color: '#ff6b6b', backgroundColor: 'rgba(255, 107, 107, 0.1)', padding: '8px', borderRadius: '4px' }}>
-          <b>Error:</b> {typeof data.error === 'string' ? data.error : JSON.stringify(data.error)}
-        </div>
-      );
-    }
     // Fallback: show as JSON
     return <pre>{JSON.stringify(data, null, 2)}</pre>;
   } catch {
-    // Not JSON, render as plain text (this handles the new free text format)
-    return <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>;
+    // Not JSON, fallback to plain text
+    return <span>{msg.content}</span>;
   }
 }
 
@@ -280,114 +212,28 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         if (!condition || !accessToken || threadId) return;
         setMessages([{ role: "system", content: "⏳ Loading case..." }]);
         setAssistantMessageComplete(false);
+        const assistantMessageTimeout: ReturnType<typeof setTimeout> | null = null;
         const start = async () => {
             try {
                 const decodedCondition = decodeURIComponent(condition);
-                let firstMessageReceived = false;
-                let accumulatedText = "";
-                
                 await streamPost(
                     "https://ukmla-case-tutor-api.onrender.com/start_case",
                     { condition: decodedCondition },
                     (data: unknown) => {
-                        if (data) {
-                            // Clear loading message when first real message is received
-                            if (!firstMessageReceived && !isStreamingProgress(data) && !isTextChunk(data)) {
-                                setMessages([]);
-                                firstMessageReceived = true;
-                            }
-
-                            // Handle new free text streaming format
-                            if (isTextChunk(data)) {
-                                // Clear loading message on first text chunk
-                                if (!firstMessageReceived) {
-                                    setMessages([]);
-                                    firstMessageReceived = true;
-                                }
-                                
-                                // Accumulate text chunks into a single message
-                                accumulatedText += data.content;
-                                
-                                setMessages(prev => {
-                                    const newMessages = [...prev];
-                                    
-                                    // Find the last assistant message or create a new one
-                                    let lastAssistantIndex = -1;
-                                    for (let i = newMessages.length - 1; i >= 0; i--) {
-                                        if (newMessages[i].role === "assistant") {
-                                            lastAssistantIndex = i;
-                                            break;
-                                        }
-                                    }
-                                    
-                                    if (lastAssistantIndex === -1) {
-                                        // No assistant message found, create new one
-                                        newMessages.push({ role: "assistant", content: accumulatedText });
-                                    } else {
-                                        // Update existing assistant message
-                                        newMessages[lastAssistantIndex] = {
-                                            ...newMessages[lastAssistantIndex],
-                                            content: accumulatedText
-                                        };
-                                    }
-                                    
-                                    return newMessages;
-                                });
-                            } else if (isCompletedMessage(data)) {
-                                // Final message received, enable input
-                                setAssistantMessageComplete(true);
-                                
-                                // Try to parse the full_text as JSON to check for structured data
-                                try {
-                                    const parsedData = JSON.parse(data.full_text);
-                                    if (isFeedbackMessage(parsedData)) {
-                                        setCaseCompletionData({
-                                            is_completed: true,
-                                            result: parsedData.result,
-                                            feedback: parsedData.feedback,
-                                            thread_metadata: undefined,
-                                            next_case_variation: undefined,
-                                            available_actions: ['new_case_same_condition', 'start_new_case', 'save_performance']
-                                        });
-                                        setCaseCompleted(true);
-                                        setShowActions(true);
-                                    }
-                                } catch {
-                                    // Not JSON, just a regular completion
-                                }
-                            } else if (isErrorMessageNew(data)) {
-                                appendMessage({ role: "assistant", content: `❌ Error: ${data.message}` });
-                                setAssistantMessageComplete(true);
-                            } else {
-                                // Handle legacy structured JSON messages for backwards compatibility
-                                if (isInitialCaseMessage(data)) {
-                                    appendMessage({ role: 'assistant', content: JSON.stringify(data) });
-                                } else if (isQuestionMessage(data)) {
-                                    appendMessage({ role: 'assistant', content: JSON.stringify(data) });
-                                    setAssistantMessageComplete(true);
-                                } else if (isFeedbackMessage(data)) {
-                                    setCaseCompletionData({
-                                        is_completed: true,
-                                        result: data.result,
-                                        feedback: data.feedback,
-                                        thread_metadata: undefined,
-                                        next_case_variation: undefined,
-                                        available_actions: ['new_case_same_condition', 'start_new_case', 'save_performance']
-                                    });
-                                    setCaseCompleted(true);
-                                    setShowActions(true);
-                                } else if (isStatusCompleted(data)) {
-                                    setCaseCompleted(true);
-                                    setShowActions(true);
-                                } else if (isErrorMessage(data)) {
-                                    appendMessage({ role: 'assistant', content: JSON.stringify(data) });
-                                } else if (isStreamingProgress(data)) {
-                                    // Ignore streaming progress indicators
-                                } else {
-                                    // Fallback for any other message type
-                                    appendMessage({ role: 'assistant', content: JSON.stringify(data) });
-                                }
-                            }
+                        // Handle all structured JSON messages
+                        if (isInitialCaseMessage(data)) {
+                          appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                        } else if (isQuestionMessage(data)) {
+                          appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                        } else if (isFeedbackMessage(data)) {
+                          appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                        } else if (isStatusCompleted(data)) {
+                          setAssistantMessageComplete(true);
+                          setCaseCompleted(true);
+                          setShowActions(true);
+                          if (onCaseComplete) onCaseComplete();
+                        } else if (isErrorMessage(data)) {
+                          appendMessage({ role: "system", content: JSON.stringify(data.error) });
                         }
                     },
                     (headers) => {
@@ -404,10 +250,13 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
             }
         };
         start();
+        return () => {
+            if (assistantMessageTimeout) clearTimeout(assistantMessageTimeout);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [condition, accessToken, threadId]);
 
-    // Refactor handleSend to handle the new free text streaming format for /continue_case
+    // Refactor handleSend to handle all structured JSON messages for /continue_case
     const handleSend = async () => {
         if (!input || !threadId || loading) return;
         const messageToSend = input;
@@ -416,86 +265,23 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         setAssistantMessageComplete(false);
         appendMessage(userMsg);
         setLoading(true);
-        
-        // Track accumulated text for the assistant response
-        let accumulatedText = "";
-        
         try {
             await streamPost(
                 "https://ukmla-case-tutor-api.onrender.com/continue_case",
                 { thread_id: threadId, user_input: messageToSend },
                 (data: unknown) => {
-                    if (isTextChunk(data)) {
-                        // Accumulate text chunks into a single message
-                        accumulatedText += data.content;
-                        
-                        setMessages(prev => {
-                            const newMessages = [...prev];
-                            
-                            // Find the last assistant message or create a new one
-                            let lastAssistantIndex = -1;
-                            for (let i = newMessages.length - 1; i >= 0; i--) {
-                                if (newMessages[i].role === "assistant") {
-                                    lastAssistantIndex = i;
-                                    break;
-                                }
-                            }
-                            
-                            if (lastAssistantIndex === -1) {
-                                // No assistant message found, create new one
-                                newMessages.push({ role: "assistant", content: accumulatedText });
-                            } else {
-                                // Update existing assistant message
-                                newMessages[lastAssistantIndex] = {
-                                    ...newMessages[lastAssistantIndex],
-                                    content: accumulatedText
-                                };
-                            }
-                            
-                            return newMessages;
-                        });
-                    } else if (isCompletedMessage(data)) {
-                        // Final message received, enable input and check for case completion
-                        setAssistantMessageComplete(true);
-                        
-                        // Try to parse the full_text as JSON to check for case completion
-                        try {
-                            const parsedData = JSON.parse(data.full_text);
-                            if (isFeedbackMessage(parsedData)) {
-                                setCaseCompletionData({
-                                    is_completed: true,
-                                    result: parsedData.result,
-                                    feedback: parsedData.feedback,
-                                });
-                                setCaseCompleted(true);
-                                setShowActions(true);
-                            }
-                        } catch {
-                            // Not JSON, just a regular completion
-                        }
-                    } else if (isErrorMessageNew(data)) {
-                        appendMessage({ role: "system", content: `❌ Error: ${data.message}` });
-                        setAssistantMessageComplete(true);
-                    } else {
-                        // Fallback for any other message type (backwards compatibility)
-                        if (isQuestionMessage(data)) {
-                            appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
-                            setAssistantMessageComplete(true);
-                        } else if (isFeedbackMessage(data)) {
-                            setCaseCompletionData({
-                                is_completed: true,
-                                result: data.result,
-                                feedback: data.feedback,
-                            });
-                            setCaseCompleted(true);
-                            setShowActions(true);
-                        } else if (isStatusCompleted(data)) {
-                            setAssistantMessageComplete(true);
-                            setCaseCompleted(true);
-                            setShowActions(true);
-                            if (onCaseComplete) onCaseComplete();
-                        }
-                    }
+                  if (isQuestionMessage(data)) {
+                    appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                  } else if (isFeedbackMessage(data)) {
+                    appendMessage({ role: "assistant", content: JSON.stringify(data, null, 2) });
+                  } else if (isStatusCompleted(data)) {
+                    setAssistantMessageComplete(true);
+                    setCaseCompleted(true);
+                    setShowActions(true);
+                    if (onCaseComplete) onCaseComplete();
+                  } else if (isErrorMessage(data)) {
+                    appendMessage({ role: "system", content: JSON.stringify(data.error) });
+                  }
                 }
             );
         } catch (err) {
@@ -552,19 +338,11 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         .filter((msg: Message) => {
                             // If case is completed, filter out ANY message that contains case completion indicators
                             if (caseCompleted) {
-                                try {
-                                    const data = JSON.parse(msg.content);
-                                    // Filter out status: completed messages when case is done
-                                    if (data.status === 'completed') {
-                                        return false;
-                                    }
-                                } catch {
-                                    // For non-JSON messages, check text content
-                                    const text = msg.content.toLowerCase();
-                                    if (text.includes("[case complete]") || 
-                                        text.includes("[case completed]")) {
-                                        return false;
-                                    }
+                                const text = msg.content.toLowerCase();
+                                if (text.includes("[case complete]") || 
+                                    text.includes("[case completed]") || 
+                                    text.startsWith("{") && text.includes("case completed")) {
+                                    return false;
                                 }
                             }
                             return true;
@@ -607,22 +385,22 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     })}
                 </div>
                 
-                {/* Updated Structured Feedback Card */}
+                {/* Structured Feedback Card */}
                 {caseCompleted && caseCompletionData && (
                     <div style={{
-                        backgroundColor: "#000",
+                        backgroundColor: "var(--color-card)",
                         borderRadius: "16px",
                         padding: "20px",
                         marginBottom: "24px",
                         boxShadow: "0 0 12px rgba(0,0,0,0.5)",
-                        border: "2px solid #d77400",
+                        border: "2px solid var(--color-accent)",
                         textAlign: "center"
                     }}>
                         <div style={{
                             fontSize: "24px",
-                            color: "#ffd5a6",
+                            color: "var(--color-title)",
                             marginBottom: "16px",
-                            fontFamily: "VT323",
+                            fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
                             fontWeight: "bold"
                         }}>
                             📋 Case Complete
@@ -633,94 +411,41 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             justifyContent: "center",
                             alignItems: "center",
                             gap: "20px",
-                            marginBottom: "20px",
+                            marginBottom: "16px",
                             flexWrap: "wrap"
                         }}>
                             <div style={{
-                                backgroundColor: caseCompletionData.result === 'pass' ? "#4CAF50" : "#f44336",
+                                backgroundColor: "var(--color-accent)",
                                 color: "#fff",
                                 padding: "12px 20px",
                                 borderRadius: "8px",
                                 fontSize: "20px",
-                                fontFamily: "VT323",
+                                fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
                                 fontWeight: "bold"
                             }}>
-                                {caseCompletionData.result === 'pass' ? "✅ PASS" : "❌ FAIL"}
+                                ✅ Score: {caseCompletionData.score}/10
                             </div>
                         </div>
                         
-                        {/* What Went Well Section */}
                         <div style={{
-                            backgroundColor: "rgba(76, 175, 80, 0.1)",
-                            border: "1px solid #4CAF50",
+                            backgroundColor: "rgba(0,0,0,0.3)",
                             padding: "16px",
                             borderRadius: "8px",
-                            marginBottom: "16px",
+                            fontSize: "18px",
+                            color: "var(--color-text)",
+                            fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
+                            lineHeight: "1.4",
                             textAlign: "left"
                         }}>
                             <div style={{ 
-                                fontSize: "18px", 
-                                color: "#4CAF50", 
-                                marginBottom: "12px",
-                                fontWeight: "bold",
-                                fontFamily: "VT323"
+                                fontSize: "20px", 
+                                color: "var(--color-accent)", 
+                                marginBottom: "8px",
+                                fontWeight: "bold"
                             }}>
-                                ✅ What Went Well:
+                                📝 Feedback:
                             </div>
-                            <ul style={{ margin: 0, paddingLeft: "20px", color: "#ffd5a6", fontFamily: "VT323", fontSize: "16px" }}>
-                                <li style={{ marginBottom: "8px" }}><strong>Management:</strong> {caseCompletionData.feedback.what_went_well.management}</li>
-                                <li style={{ marginBottom: "8px" }}><strong>Investigation:</strong> {caseCompletionData.feedback.what_went_well.investigation}</li>
-                                <li style={{ marginBottom: "8px" }}><strong>Other:</strong> {caseCompletionData.feedback.what_went_well.other}</li>
-                            </ul>
-                        </div>
-
-                        {/* What Can Be Improved Section */}
-                        <div style={{
-                            backgroundColor: "rgba(255, 193, 7, 0.1)",
-                            border: "1px solid #FFC107",
-                            padding: "16px",
-                            borderRadius: "8px",
-                            marginBottom: "16px",
-                            textAlign: "left"
-                        }}>
-                            <div style={{ 
-                                fontSize: "18px", 
-                                color: "#FFC107", 
-                                marginBottom: "12px",
-                                fontWeight: "bold",
-                                fontFamily: "VT323"
-                            }}>
-                                🔄 What Can Be Improved:
-                            </div>
-                            <ul style={{ margin: 0, paddingLeft: "20px", color: "#ffd5a6", fontFamily: "VT323", fontSize: "16px" }}>
-                                <li style={{ marginBottom: "8px" }}><strong>Management:</strong> {caseCompletionData.feedback.what_can_be_improved.management}</li>
-                                <li style={{ marginBottom: "8px" }}><strong>Investigation:</strong> {caseCompletionData.feedback.what_can_be_improved.investigation}</li>
-                                <li style={{ marginBottom: "8px" }}><strong>Other:</strong> {caseCompletionData.feedback.what_can_be_improved.other}</li>
-                            </ul>
-                        </div>
-
-                        {/* Actionable Points Section */}
-                        <div style={{
-                            backgroundColor: "rgba(33, 150, 243, 0.1)",
-                            border: "1px solid #2196F3",
-                            padding: "16px",
-                            borderRadius: "8px",
-                            textAlign: "left"
-                        }}>
-                            <div style={{ 
-                                fontSize: "18px", 
-                                color: "#2196F3", 
-                                marginBottom: "12px",
-                                fontWeight: "bold",
-                                fontFamily: "VT323"
-                            }}>
-                                🎯 Action Points:
-                            </div>
-                            <ul style={{ margin: 0, paddingLeft: "20px", color: "#ffd5a6", fontFamily: "VT323", fontSize: "16px" }}>
-                                {caseCompletionData.feedback.actionable_points.map((point, index) => (
-                                    <li key={index} style={{ marginBottom: "8px" }}>{point}</li>
-                                ))}
-                            </ul>
+                            {caseCompletionData.feedback}
                         </div>
                     </div>
                 )}
@@ -736,8 +461,8 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             type="text"
                             placeholder="Type your answer..."
                             value={input}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
-                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                     e.preventDefault();
                                     handleSend();
