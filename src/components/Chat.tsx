@@ -182,6 +182,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     // Refactored streamPost handler for /start_case
     useEffect(() => {
         if (!condition || !accessToken || threadId) return;
+        // Clear all previous messages and show loading
         setMessages([{ role: "system", content: "⏳ Loading case..." }]);
         setAssistantMessageComplete(false);
         let accumulatedText = "";
@@ -189,6 +190,8 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         const start = async () => {
             try {
                 const decodedCondition = decodeURIComponent(condition);
+                // Clear all previous messages before streaming new case
+                setMessages([{ role: "system", content: "⏳ Loading case..." }]);
                 await streamPost(
                     "https://ukmla-case-tutor-api.onrender.com/start_case",
                     { condition: decodedCondition },
