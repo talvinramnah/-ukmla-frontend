@@ -31,13 +31,24 @@ interface StructuredFeedback {
 
 // Helper to parse feedback from string (new or old format)
 function parseFeedback(feedback: string): StructuredFeedback | null {
-  // Improved regex: match [CASE COMPLETED] followed by any whitespace/newlines, then a JSON object
-  const match = feedback.match(/\[CASE COMPLETED\][^\{]*({[\s\S]+?})/i);
+  // Try robust regex first: [CASE COMPLETED] followed by any whitespace/newlines, then a JSON object
+  let match = feedback.match(/\[CASE COMPLETED\][\s\n\r]*({[\s\S]+?})/i);
   let jsonStr = '';
   if (match && match[1]) {
     jsonStr = match[1];
   } else if (feedback.trim().startsWith('{')) {
     jsonStr = feedback.trim();
+  } else {
+    // Fallback: find first '{' after [CASE COMPLETED] and last '}'
+    const idx = feedback.indexOf('[CASE COMPLETED]');
+    if (idx !== -1) {
+      const after = feedback.slice(idx + 16); // 16 = length of '[CASE COMPLETED]'
+      const firstBrace = after.indexOf('{');
+      const lastBrace = after.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        jsonStr = after.slice(firstBrace, lastBrace + 1);
+      }
+    }
   }
   if (jsonStr) {
     try {
