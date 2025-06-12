@@ -32,7 +32,7 @@ interface StructuredFeedback {
 // Helper to parse feedback from string (new or old format)
 function parseFeedback(feedback: string): StructuredFeedback | null {
   // Try robust regex first: [CASE COMPLETED] followed by any whitespace/newlines, then a JSON object
-  let match = feedback.match(/\[CASE COMPLETED\][\s\n\r]*({[\s\S]+?})/i);
+  const match = feedback.match(/\[CASE COMPLETED\][\s\n\r]*({[\s\S]+?})/i);
   let jsonStr = '';
   if (match && match[1]) {
     jsonStr = match[1];
