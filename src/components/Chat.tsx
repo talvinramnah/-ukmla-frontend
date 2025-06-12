@@ -238,12 +238,16 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         }
                         // Handle case_completed
                         if (typeof data === "object" && data !== null && (data as { type: string }).type === "case_completed") {
-                            setCaseCompletionData({
-                                is_completed: true,
-                                feedback: (data as { feedback: string }).feedback,
-                                score: (data as { score: number }).score,
-                                structuredFeedback: parseFeedback((data as { feedback: string }).feedback),
-                            });
+                            // Only update if feedback is not null/undefined
+                            const feedback = (data as { feedback: string | null | undefined }).feedback;
+                            if (feedback) {
+                                setCaseCompletionData({
+                                    is_completed: true,
+                                    feedback,
+                                    score: (data as { score: number }).score,
+                                    structuredFeedback: parseFeedback(feedback),
+                                });
+                            }
                             setCaseCompleted(true);
                             setShowActions(true);
                             setAssistantMessageComplete(false);
@@ -329,12 +333,16 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                     }
                     // Handle case_completed
                     if (typeof data === "object" && data !== null && (data as { type: string }).type === "case_completed") {
-                        setCaseCompletionData({
-                            is_completed: true,
-                            feedback: (data as { feedback: string }).feedback,
-                            score: (data as { score: number }).score,
-                            structuredFeedback: parseFeedback((data as { feedback: string }).feedback),
-                        });
+                        // Only update if feedback is not null/undefined
+                        const feedback = (data as { feedback: string | null | undefined }).feedback;
+                        if (feedback) {
+                            setCaseCompletionData({
+                                is_completed: true,
+                                feedback,
+                                score: (data as { score: number }).score,
+                                structuredFeedback: parseFeedback(feedback),
+                            });
+                        }
                         setCaseCompleted(true);
                         setShowActions(true);
                         setAssistantMessageComplete(false);
