@@ -31,8 +31,8 @@ interface StructuredFeedback {
 
 // Helper to parse feedback from string (new or old format)
 function parseFeedback(feedback: string): StructuredFeedback | null {
-  // Try robust regex first: [CASE COMPLETED] followed by any whitespace/newlines, then a JSON object
-  const match = feedback.match(/\[CASE COMPLETED\][\s\n\r]*({[\s\S]+?})/i);
+  // Improved robust regex: [CASE COMPLETED] followed by any whitespace/newlines, then a JSON object
+  const match = feedback.match(/\[CASE COMPLETED\][\s\S]*?({[\s\S]+?})/i);
   let jsonStr = '';
   if (match && match[1]) {
     jsonStr = match[1];
@@ -404,16 +404,20 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
       const feedbackMsg = messages.find(
         (msg) =>
           msg.role === 'assistant' &&
-          /\[CASE COMPLETED\][^\{]*{[\s\S]+?}/i.test(msg.content)
+          /\[CASE COMPLETED\][\s\S]*?{[\s\S]+?}/i.test(msg.content)
       );
       if (feedbackMsg) {
+        console.log('[CASE COMPLETED] block detected in message:', feedbackMsg.content);
         const structured = parseFeedback(feedbackMsg.content);
         if (structured) {
+          console.log('Parsed structured feedback:', structured);
           setCaseCompletionData((prev) =>
             prev
               ? { ...prev, structuredFeedback: structured, is_completed: true }
               : { is_completed: true, feedback: feedbackMsg.content, score: 0, structuredFeedback: structured }
           );
+        } else {
+          console.log('Failed to parse structured feedback from message:', feedbackMsg.content);
         }
       }
     }, [messages, caseCompletionData]);
@@ -435,12 +439,13 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         .filter((msg: Message) => {
                             if (caseCompleted) {
                                 const text = msg.content.toLowerCase();
-                                if (
+                                const matched =
                                     text.includes("[case complete]") ||
                                     text.includes("[case completed]") ||
                                     (text.startsWith("{") && text.includes("case completed")) ||
-                                    /\[case completed\][^\{]*{[\s\S]+?}/i.test(msg.content)
-                                ) {
+                                    /\[case completed\][\s\S]*?{[\s\S]+?}/i.test(msg.content);
+                                if (matched) {
+                                    console.log('Filtering out [CASE COMPLETED] message:', msg.content);
                                     return false;
                                 }
                             }
