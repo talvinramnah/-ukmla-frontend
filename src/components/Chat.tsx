@@ -31,8 +31,8 @@ interface StructuredFeedback {
 
 // Helper to parse feedback from string (new or old format)
 function parseFeedback(feedback: string): StructuredFeedback | null {
-  // Try to extract JSON block after [CASE COMPLETED]
-  const match = feedback.match(/\[CASE COMPLETED\][^\{]*({[\s\S]+})/i);
+  // Improved regex: match [CASE COMPLETED] followed by any whitespace/newlines, then a JSON object
+  const match = feedback.match(/\[CASE COMPLETED\][^\{]*({[\s\S]+?})/i);
   let jsonStr = '';
   if (match && match[1]) {
     jsonStr = match[1];
@@ -42,9 +42,7 @@ function parseFeedback(feedback: string): StructuredFeedback | null {
   if (jsonStr) {
     try {
       const obj = JSON.parse(jsonStr);
-      // Accept both snake_case and space keys
       const summary = obj['feedback summary'] || obj['feedback_summary'] || '';
-      // Split bullet points by line or return as array
       let positive: string[] = [];
       let negative: string[] = [];
       if (typeof obj['feedback details positive'] === 'string') {
@@ -60,11 +58,9 @@ function parseFeedback(feedback: string): StructuredFeedback | null {
       const result = (obj['result'] || '').toLowerCase();
       return { summary, positive, negative, result };
     } catch {
-      // Parsing failed, fallback
       return null;
     }
   }
-  // Not new format
   return null;
 }
 
@@ -426,14 +422,13 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 <div style={{ width: "100%", maxWidth: "800px" }}>
                     {messages
                         .filter((msg: Message) => {
-                            // If case is completed, filter out ANY message that contains case completion indicators
                             if (caseCompleted) {
                                 const text = msg.content.toLowerCase();
                                 if (
                                     text.includes("[case complete]") ||
                                     text.includes("[case completed]") ||
                                     (text.startsWith("{") && text.includes("case completed")) ||
-                                    /\[case completed\][^\{]*{[\s\S]+}/i.test(msg.content) // filter out JSON feedback blocks
+                                    /\[case completed\][^\{]*{[\s\S]+?}/i.test(msg.content)
                                 ) {
                                     return false;
                                 }
