@@ -121,6 +121,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     const searchParams = useSearchParams();
     const caseFocus = searchParams.get('case_focus') || 'both';
     const [toastMsg, setToastMsg] = useState<string | null>(null);
+    const [hasSaved, setHasSaved] = useState(false);
 
     const doctorImg = "https://i.imgur.com/NYfCYKZ.png";
     const studentImg = "https://i.imgur.com/D7DZ2Wv.png";
@@ -458,11 +459,54 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
               ? { ...prev, structuredFeedback: structured, is_completed: true }
               : { is_completed: true, feedback: feedbackMsg.content, score: 0, structuredFeedback: structured }
           );
+          // Trigger save_performance as soon as feedback is parsed
+          if (!hasSaved && threadId) {
+            (async () => {
+              setNavLoading('logout');
+              setNavError(null);
+              try {
+                const payload = {
+                  thread_id: threadId,
+                  result: structured.result === 'pass',
+                  feedback_summary: structured.summary,
+                  feedback_positives: structured.positive,
+                  feedback_improvements: structured.negative,
+                  chat_transcript: messages.map((m) => ({ role: m.role, content: m.content })),
+                };
+                const res = await fetch('https://ukmla-case-tutor-api.onrender.com/save_performance', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`,
+                    'X-Refresh-Token': refreshToken,
+                  },
+                  body: JSON.stringify(payload),
+                });
+                if (!res.ok) {
+                  console.error('Save performance failed:', res.status, res.statusText);
+                  setNavError("Couldn't save progress. Please try again.");
+                  return;
+                } else {
+                  const json = await res.json();
+                  setToastMsg('Progress saved successfully!');
+                  if (json.badge_awarded) {
+                    setToastMsg(`🎉 New badge earned: ${json.badge_awarded}!`);
+                  }
+                }
+                setHasSaved(true);
+              } catch (err) {
+                setNavError("Couldn't save progress. Please try again.");
+                console.error('Post-case nav error (save):', err);
+              } finally {
+                setNavLoading(null);
+              }
+            })();
+          }
         } else {
           console.log('Failed to parse structured feedback from message:', feedbackMsg.content);
         }
       }
-    }, [messages, caseCompletionData]);
+    }, [messages, caseCompletionData, hasSaved, threadId, accessToken, refreshToken]);
 
     return (
         <div className="pixel-font" style={{ background: "#180161", minHeight: "100vh", padding: 32, color: "#ffd5a6", fontFamily: "VT323" }}>
