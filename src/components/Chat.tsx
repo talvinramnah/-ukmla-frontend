@@ -115,7 +115,6 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     const [showActions, setShowActions] = useState(false);
     const [assistantMessageComplete, setAssistantMessageComplete] = useState(false);
     const router = useRouter();
-    const { clearTokens } = useTokens();
     const [navLoading, setNavLoading] = useState<string | null>(null); // 'new', 'ward', 'logout'
     const [navError, setNavError] = useState<string | null>(null);
     const streamingMessageIndex = useRef<number | null>(null);
