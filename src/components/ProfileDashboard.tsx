@@ -49,8 +49,8 @@ interface Badge {
 // Define a Stats interface for the stats state
 interface Stats {
   total_cases: number;
-  average_score: number;
-  success_rate: number;
+  total_passes: number;
+  pass_rate: number;
 }
 
 export default function ProfileDashboard() {
@@ -119,8 +119,8 @@ export default function ProfileDashboard() {
       {stats && (
         <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', marginBottom: 40 }}>
           <StatCard label="Total Cases" value={stats.total_cases} />
-          <StatCard label="Average Score" value={stats.average_score.toFixed(1)} />
-          <StatCard label="Success Rate" value={`${stats.success_rate}%`} />
+          <StatCard label="Total Passes" value={stats.total_passes} />
+          <StatCard label="Pass Rate" value={`${stats.pass_rate}%`} />
           <StatCard label="Badges Earned" value={badges.length} />
         </div>
       )}

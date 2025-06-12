@@ -84,7 +84,7 @@ type WardSelectionProps = {
 
 export default function WardSelection({ accessToken, refreshToken, onSelectCondition, onSelectWard, navigationMode = 'inline' }: WardSelectionProps) {
     const [wardsData, setWardsData] = useState<Record<string, string[]>>({});
-    const [progressData, setProgressData] = useState<Record<string, { total_cases: number; avg_score: number }>>({});
+    const [progressData, setProgressData] = useState<Record<string, import("../types/performance").LevelStats>>({});
     const [selectedWard, setSelectedWard] = useState<string | null>(null);
     const [hoveredWard, setHoveredWard] = useState<string | null>(null);
     const [userName, setUserName] = useState<string>('Anon_name');
@@ -314,7 +314,7 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                             {Object.keys(wardsData).map((ward) => {
                                 const imageSrc = WARD_IMAGES[ward];
                                 const displayName = WARD_DISPLAY_NAMES[ward] || ward;
-                                const stats = progressData?.[ward] || { total_cases: 0, avg_score: 0 };
+                                const stats = progressData?.[ward] || { total_cases: 0, total_passes: 0, pass_rate: 0 };
                                 return (
                                     <div
                                         key={ward}
@@ -331,7 +331,7 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                                         <Image src={imageSrc} alt={ward} width={200} height={120} style={styles.image} />
                                         <div style={styles.stat}>
                                             ✅ {stats.total_cases} cases<br />
-                                            📝 Avg Score: {stats.avg_score.toFixed(1)}
+                                            ✅ Pass Rate: {stats.pass_rate.toFixed(1)}%
                                         </div>
                                     </div>
                                 );

@@ -1,17 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
-
-// Define a ProgressData interface for the correct structure
-interface ProgressData {
-  overall: {
-    total_cases: number;
-    average_score: number;
-    success_rate: number;
-    total_badges: number;
-  };
-  ward_stats: Record<string, { total_cases: number; avg_score: number; success_rate: number }>;
-}
+import type { ProgressData, LevelStats } from "../types/performance";
 
 type ProgressModalProps = {
   accessToken: string;
@@ -152,12 +142,12 @@ export default function ProgressModal({ accessToken, refreshToken, onClose }: Pr
                             <div style={styles.statLabel}>Total Cases</div>
                         </div>
                         <div style={styles.statItem}>
-                            <div style={{ fontSize: "16px" }}>{overall.average_score.toFixed(1)}</div>
-                            <div style={styles.statLabel}>Average Score</div>
+                            <div style={{ fontSize: "16px" }}>{overall.total_passes}</div>
+                            <div style={styles.statLabel}>Total Passes</div>
                         </div>
                         <div style={styles.statItem}>
-                            <div style={{ fontSize: "16px" }}>{overall.success_rate}%</div>
-                            <div style={styles.statLabel}>Success Rate</div>
+                            <div style={{ fontSize: "16px" }}>{overall.pass_rate}%</div>
+                            <div style={styles.statLabel}>Pass Rate</div>
                         </div>
                         <div style={styles.statItem}>
                             <div style={{ fontSize: "16px" }}>{overall.total_badges}</div>
@@ -167,11 +157,14 @@ export default function ProgressModal({ accessToken, refreshToken, onClose }: Pr
                 </div>
                 <div style={styles.section}>
                     <div style={styles.sectionTitle}>🏅 Ward Performance</div>
-                    {Object.entries(ward_stats).map(([ward, stats]: [string, { total_cases: number; avg_score: number; success_rate: number }]) => (
-                        <div key={ward} style={styles.wardItem}>
-                            {ward}: {stats.total_cases} cases – Avg Score: {stats.avg_score.toFixed(1)} – Success Rate: {stats.success_rate.toFixed(1)}%
-                        </div>
-                    ))}
+                    {Object.entries(ward_stats).map(([ward, stats]) => {
+                        const s = stats as LevelStats;
+                        return (
+                          <div key={ward} style={styles.wardItem}>
+                            {ward}: {s.total_cases} cases – Passes: {s.total_passes} – Pass Rate: {s.pass_rate.toFixed(1)}%
+                          </div>
+                        );
+                    })}
                 </div>
             </div>
         </div>

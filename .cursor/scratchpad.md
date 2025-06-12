@@ -943,319 +943,95 @@ Instead of separating into different pages (which conflicts with current archite
 - Integrated into `ClientLayout.tsx` with flex-column structure so TopBar appears above scrollable content, but not over Dynamic Island.
 - Added placeholder pages: `/profile`
 
-# Condition Selection Card Redesign Plan (Planner Mode)
+# Performance Table Redesign & Leaderboard Alignment Plan (Planner Mode)
 
----
+## Background and Motivation (Updated ‑ 2025-06-12)
+The backend `performance` table has been dropped and recreated with a richer schema that now stores:
+- Booleans (`result`) instead of numeric scores.
+- Structured feedback (`feedback_summary`, `feedback_positives`, `feedback_improvements`) as JSON/arrays.
+- Full `chat_transcript` JSON for advanced analytics.
+- Additional endpoints (`/save_performance`, enhanced `/progress`, upcoming `/leaderboard`, `/weekly_report`).
 
-## Background and Motivation
-
-The current condition selection screen displays conditions as a simple vertical list of buttons. To improve visual consistency and user experience, we want to redesign this to use the same card-based layout as the WardSelection component. Each condition will have its own card with:
-- Card design matching WardSelection (same styling, hover effects, responsive grid)
-- Performance statistics pulled from Supabase (total cases, average score)
-- Consistent image for all conditions (provided placeholder image)
-- Responsive grid layout that adapts to screen size
+To keep the product functional and unlock new analytics/leaderboard features, the **frontend must be updated to consume the new response shapes and start POSTing data to `/save_performance`**.
 
 ## Key Challenges and Analysis
-
-### Current Implementation Analysis:
-- **ConditionSelection.tsx**: Currently displays conditions as simple buttons in a vertical list
-- **Data Source**: Fetches conditions from `/wards` API endpoint, gets array of condition names per ward
-- **Navigation**: Uses Next.js router to navigate to `/${ward}/${condition}` route
-- **Styling**: Basic button styling, not consistent with ward cards
-
-### Technical Challenges:
-1. **Performance Data Integration**: Need to fetch condition-level performance data from Supabase
-   - Current progress API only provides `ward_stats` (ward-level aggregation)
-   - Need to determine if condition-level data exists in `performance` table or needs API modification
-2. **Card Layout Adaptation**: Reuse WardSelection card styling and responsive grid system
-3. **Image Handling**: Use provided placeholder image for all condition cards
-4. **State Management**: Maintain existing token-based authentication and error handling
-5. **Navigation Consistency**: Preserve existing routing behavior while updating UI
-
-### API Investigation Required:
-- **Current Progress API**: Returns `{ overall: {...}, ward_stats: {...} }`
-- **Needed**: Condition-level stats like `{ condition_stats: { "condition_name": { total_cases: number, avg_score: number } } }`
-- **Fallback**: If condition-level data unavailable, show placeholder stats or aggregate from ward level
+1. **Breaking API Changes** – Field names changed (`pass_rate` replaces `success_rate`; `total_passes` replaces `average_score`, etc.). All affected components must be refactored simultaneously to avoid runtime errors.
+2. **New Save Flow** – Front-end currently never calls `/save_performance`. We must hook this into case-completion logic (in `Chat.tsx` / `PostCaseActions`).
+3. **Richer UI Requirements** – The new data enables recent cases lists, badges, and leaderboard views that do not yet exist in the UI.
+4. **Type Safety** – Update all TypeScript interfaces so that linting/build continues to pass.
+5. **Regression Risk** – Progress modal, ward/condition cards, and profile dashboards are all tightly coupled to the old schema; need end-to-end testing after refactor.
 
 ## High-level Task Breakdown
 
-### Phase 1: API Investigation & Data Structure (30 minutes)
-1. **Investigate Supabase performance table structure** ✅
-   - Success criteria: Understand table schema and available fields
-   - Status: COMPLETED - Table has condition, ward, score, created_at fields
+### Phase 1 – Audit & Interface Refactor
+- [ ] **1.1** Exhaustive grep for `success_rate`, `average_score`, `avg_score`, and other old field names.
+- [ ] **1.2** Define new shared TS interfaces in `types/performance.ts` matching the new `/progress` payload:
+  ```ts
+  interface ProgressData {
+    overall: { total_cases: number; total_passes: number; pass_rate: number; total_badges: number };
+    ward_stats: Record<string, { total_cases: number; total_passes: number; pass_rate: number }>;
+    condition_stats: Record<string, { total_cases: number; total_passes: number; pass_rate: number }>;
+    recent_cases: RecentCase[];
+    badges: Badge[];
+  }
+  ```
+- [ ] **1.3** Refactor `ProgressModal`, `WardSelection`, `ConditionSelection`, and `ProfileDashboard` to use new shapes.
+- [ ] **1.4** Update UI text (e.g., "Success Rate" → "Pass Rate").
 
-2. **Determine condition-level data availability** ✅
-   - Success criteria: Confirm we can aggregate condition-level statistics
-   - Status: COMPLETED - Raw data available, requires client-side aggregation
+### Phase 2 – Save Performance Integration
+- [ ] **2.1** In `Chat.tsx` detect case completion and build payload for **POST `/save_performance`**.
+- [ ] **2.2** Handle positive response (`badge_awarded`) → surface toast / modal.
+- [ ] **2.3** On failure, show error and retry option.
 
-3. **Plan data fetching strategy** ✅
-   - Success criteria: Define how to fetch and process performance data
-   - Status: COMPLETED - POST to /performance/conditions with client-side aggregation
+### Phase 3 – New Reporting Features
+- [ ] **3.1** Add Recent Cases list inside Progress modal (uses `recent_cases`).
+- [ ] **3.2** Create Leaderboard page/component consuming `/leaderboard` (design TBD).
+- [ ] **3.3** Weekly report endpoint integration (optional email style modal).
 
-### Phase 2: UI Implementation ✅
-4. **Create card-based condition layout** ✅
-   - Success criteria: Replace list with responsive card grid
-   - Status: COMPLETED - Implemented responsive grid with cards
+### Phase 4 – Comprehensive Testing
+- [ ] **4.1** Unit tests for new type guards & parsers.
+- [ ] **4.2** Cypress/Playwright happy-path E2E: login → complete case → save → view progress → leaderboard.
+- [ ] **4.3** Regression test for legacy flows (login, chat streaming, logout).
 
-5. **Add performance statistics display** ✅
-   - Success criteria: Show total cases and average score per condition
-   - Status: COMPLETED - Stats displayed with proper formatting
+### Phase 5 – Cleanup & Docs
+- [ ] **5.1** Update README & onboarding docs to describe new flows.
+- [ ] **5.2** Record "Lessons" for future schema migrations.
 
-6. **Integrate placeholder images** ✅
-   - Success criteria: Add visual appeal with single placeholder image (extensible design)
-   - Status: COMPLETED - Single image with future-ready structure
+## Project Status Board (Frontend-side)
+- [ ] **Phase 1 – Interface Refactor**
+- [ ] **Phase 2 – Save Performance Integration**
+- [ ] **Phase 3 – Reporting Features**
+- [ ] **Phase 4 – Testing & QA**
+- [ ] **Phase 5 – Docs & Cleanup**
 
-### Phase 3: Performance Data Integration ✅
-7. **Implement performance data fetching** ✅
-   - Success criteria: Fetch real performance data from API
-   - Status: COMPLETED - POST request to /performance/conditions endpoint
+## Current Status / Progress Tracking (Frontend Redesign)
 
-8. **Add client-side data aggregation** ✅
-   - Success criteria: Group and calculate condition-level statistics
-   - Status: COMPLETED - Proper grouping and averaging logic implemented
+**[2025-06-12] Executor Update**
 
-9. **Handle error cases and loading states** ✅
-   - Success criteria: Graceful fallbacks when data unavailable
-   - Status: COMPLETED - Error handling with fallback to zero stats
+### Phase 1 – Audit & Interface Refactor
+- ✅ **1.1** Exhaustive grep/audit complete. Affected components identified.
+- ✅ **1.2** Completed: 
+  - Created `src/types/performance.ts`
+- ✅ **1.3** Refactored components to use new shapes.
+- ✅ **1.4** Updated UI text.
 
-### Phase 4: Testing and Refinement
-10. **Test the complete implementation**
-    - Success criteria: Verify cards display correctly with real performance data
-    - Status: PENDING - Ready for user testing
+### Phase 2 – Save Performance Integration
+- ✅ **2.1** Implemented POST `/save_performance` call in `Chat.tsx` when user clicks "Save Progress".
+- ✅ **2.2** Replaced alerts with reusable `Toast` component; shows success and badge messages.
 
-11. **Address any UI/UX issues**
-    - Success criteria: Ensure responsive design and good user experience
-    - Status: PENDING - Awaiting user feedback
+### Phase 3 – New Reporting Features
+- [ ] **3.1** Add Recent Cases list inside Progress modal (uses `recent_cases`).
+- [ ] **3.2** Create Leaderboard page/component consuming `/leaderboard` (design TBD).
+- [ ] **3.3** Weekly report endpoint integration (optional email style modal).
 
-## Project Status Board
+### Phase 4 – Comprehensive Testing
+- [ ] **4.1** Unit tests for new type guards & parsers.
+- [ ] **4.2** Cypress/Playwright happy-path E2E: login → complete case → save → view progress → leaderboard.
+- [ ] **4.3** Regression test for legacy flows (login, chat streaming, logout).
 
-### ✅ Completed Tasks
-- [x] Investigate Supabase performance table structure
-- [x] Determine condition-level data availability  
-- [x] Plan data fetching strategy
-- [x] Create card-based condition layout
-- [x] Add performance statistics display
-- [x] Integrate placeholder images
-- [x] Implement performance data fetching
-- [x] Add client-side data aggregation
-- [x] Handle error cases and loading states
+### Phase 5 – Cleanup & Docs
+- [ ] **5.1** Update README & onboarding docs to describe new flows.
+- [ ] **5.2** Record "Lessons" for future schema migrations.
 
-### 🔄 In Progress Tasks
-- [ ] Test the complete implementation
-- [ ] Address any UI/UX issues
-
-### 📋 Pending Tasks
-- None currently
-
-## Current Status / Progress Tracking
-
-**Latest Update**: Successfully implemented performance data integration with real API calls.
-
-**Phase 3 Implementation Details**:
-- ✅ Replaced placeholder progress API call with proper performance data endpoint
-- ✅ Implemented POST request to `/performance/conditions` with condition list in body
-- ✅ Added client-side aggregation logic to group scores by condition
-- ✅ Calculated total cases and average scores for each condition
-- ✅ Added comprehensive error handling with fallback to zero stats
-- ✅ No TypeScript compilation errors
-
-**Technical Implementation**:
-- API Endpoint: `POST /performance/conditions`
-- Request Body: `{ conditions: string[] }`
-- Response: Array of performance records with condition, score, etc.
-- Client-side aggregation: Groups scores by condition and calculates averages
-- Error Handling: Falls back to zero stats if API call fails
-
-**Ready for Testing**: The implementation is complete and ready for user testing to verify the card layout displays correctly with real performance statistics.
-
-## Executor's Feedback or Assistance Requests
-
-**Task Completion Report**: 
-I have successfully completed Phase 3 of the condition selection enhancement project. The performance data integration is now fully implemented with:
-
-1. **Real API Integration**: Replaced placeholder API calls with actual performance data fetching
-2. **Client-side Aggregation**: Implemented proper grouping and statistical calculation
-3. **Error Handling**: Added comprehensive error handling with graceful fallbacks
-4. **Type Safety**: No TypeScript compilation errors
-
-**Ready for User Testing**: The implementation is complete and the development server should be running. The user can now test the condition selection interface to see:
-- Card-based layout for conditions
-- Real performance statistics (total cases, average scores)
-- Placeholder images for visual appeal
-- Responsive design
-
-**Next Steps**: Awaiting user testing and feedback to identify any UI/UX refinements needed before marking the project complete.
-
-## Lessons
-
-### API Integration Lessons
-- The performance data endpoint expects a POST request with conditions array in the request body
-- Client-side aggregation is necessary since the API returns raw performance records
-- Always implement error handling with meaningful fallbacks for better user experience
-
-### Implementation Lessons  
-- TypeScript compilation helps catch errors early in the development process
-- Structuring code for future extensibility (like the image randomization) saves refactoring time later
-- Testing each phase incrementally helps identify issues early
-
-# UKMLA Frontend - Condition Selection Performance Data Integration
-
-## Background and Motivation
-
-The user requested integration of real performance data from the Supabase backend into the condition selection interface. The goal is to replace placeholder/fallback data with actual statistics from the performance table, showing users their progress on different medical conditions.
-
-## Key Challenges and Analysis
-
-### Phase 1: API Investigation (COMPLETED)
-- ✅ Confirmed Supabase performance table structure
-- ✅ Verified condition-level data availability  
-- ✅ Established data fetching strategy via `/progress` endpoint
-
-### Phase 2: Frontend Implementation (COMPLETED)
-- ✅ Implemented card-based condition selection layout
-- ✅ Added performance statistics display (total cases, average score)
-- ✅ Integrated with `/progress` API endpoint
-- ✅ Added error handling and retry functionality
-- ✅ Removed fallback strategies to ensure data integrity
-
-### Phase 3: Backend Integration (COMPLETED)
-- ✅ Backend `/progress` endpoint enhanced with `condition_stats` field
-- ✅ Proper aggregation of performance data by condition
-- ✅ API response structure matches frontend expectations
-
-### Phase 4: Chat Component Fix (COMPLETED)
-- ✅ Fixed assistant message index calculation issues in Chat.tsx
-- ✅ Implemented callback-based state updates for reliable message tracking
-- ✅ Applied fix to both `handleSend` and start case functions
-- ✅ Resolved asynchronous state update problems
-
-## High-level Task Breakdown
-
-### ✅ Phase 1: Investigate Current API Structure
-- [x] Examine Supabase performance table structure
-- [x] Understand condition-level data availability
-- [x] Determine data fetching strategy
-
-### ✅ Phase 2: Implement Frontend Changes
-- [x] Update condition selection component layout
-- [x] Integrate with `/progress` endpoint
-- [x] Add error handling and loading states
-- [x] Remove fallback data strategies
-
-### ✅ Phase 3: Verify Backend Integration
-- [x] Confirm `/progress` endpoint includes condition stats
-- [x] Test API response structure
-- [x] Validate data aggregation logic
-
-### ✅ Phase 4: Fix Chat Component Issues
-- [x] Fix assistant message index calculation in `handleSend`
-- [x] Fix assistant message index calculation in start case function
-- [x] Implement callback-based state updates
-- [x] Test message streaming functionality
-
-## Project Status Board
-
-### ✅ Completed Tasks
-- [x] **API Investigation**: Analyzed Supabase performance table structure and confirmed data availability
-- [x] **Frontend Implementation**: Updated ConditionSelection component with real API integration
-- [x] **Error Handling**: Added comprehensive error handling with user-friendly messages
-- [x] **Backend Verification**: Confirmed `/progress` endpoint includes condition_stats field
-- [x] **Deployment Fix**: Resolved Vercel build linter errors
-- [x] **Chat Component Fix**: Fixed assistant message index calculation issues
-
-### 🎯 Current Status
-All phases completed successfully. The condition selection interface now displays real performance data from the Supabase backend, and the chat component has been fixed to handle message streaming correctly.
-
-## Current Status / Progress Tracking
-
-### ✅ Condition Selection Integration - COMPLETED
-- **Frontend Changes**: 
-  - Removed fallback strategies to ensure data integrity
-  - Enhanced error handling with user-friendly messages and retry functionality
-  - Updated API integration to use `/progress` endpoint
-  - Improved UI with loading states and error displays
-  - Enhanced TypeScript safety with proper type definitions
-
-- **Backend Changes**:
-  - Database aggregation of performance data by condition
-  - API response enhancement with `condition_stats` field
-  - Proper data structure with total_cases and avg_score
-  - Performance improvements with efficient queries
-
-- **Integration Status**: 
-  - Frontend and backend are fully integrated
-  - Development server running successfully
-  - No TypeScript or linter errors
-  - Ready for production deployment
-
-### ✅ Chat Component Fix - COMPLETED
-Successfully resolved assistant message index calculation problems:
-1. **Root cause**: Asynchronous React state updates causing index misalignment
-2. **Solution**: Callback-based state updates with dynamic message finding
-3. **Implementation**: Applied fix to both message handling functions
-4. **Verification**: Code changes implemented and ready for testing
-
-### ✅ Vercel Deployment Linter Fix - COMPLETED
-Successfully resolved Vercel build failure due to unused variables:
-1. **Issue**: `assistantMessageIndex` variable was assigned but never used in callback-based approach
-2. **Error Lines**: Lines 288 and 425 in Chat.tsx showing `@typescript-eslint/no-unused-vars`
-3. **Solution**: Removed unused `assistantMessageIndex` variable assignments from both functions
-4. **Files Modified**: `src/components/Chat.tsx` - removed 5 unused variable assignments
-5. **Build Status**: ✅ `npm run build` now passes successfully with no errors
-6. **Deployment Ready**: Application is now ready for successful Vercel deployment
-
-## Background and Motivation
-The backend for the `start_case` and `continue_case` endpoints now returns feedback in a new structured format when a case is completed. The new format is:
-
-[CASE COMPLETED]  
-{{  
-  "feedback summary": "Brief feedback on overall performance",  
-  "feedback details positive": "2 bullet points of positive feedback",
-  "feedback details negative": "2 bullet points of negative feedback",
-  "result": pass or fail
-}}
-
-The current feedback card in `Chat.tsx` expects a different structure (single feedback string and score). We need to update the UI to parse and display the new structure, including summary, positive/negative bullet points, and pass/fail result.
-
-## Key Challenges and Analysis
-- **Parsing:** The feedback is now a JSON object embedded in the assistant's message, possibly as a string. We need to reliably extract and parse this block.
-- **Backward Compatibility:** Some cases may still return the old format. The UI should handle both gracefully.
-- **UI Update:** The feedback card must show:
-  - Feedback summary (as a short paragraph)
-  - Two positive bullet points
-  - Two negative bullet points
-  - Pass/Fail result (with clear visual indicator)
-- **Error Handling:** If parsing fails, show a fallback message.
-
-## High-level Task Breakdown
-1. **Update Feedback Parsing Logic**
-   - Detect and extract the new feedback JSON block from the assistant's message when a case is completed.
-   - Parse the JSON and store it in state.
-   - Fallback to old format if parsing fails.
-   - **Success Criteria:** The correct feedback structure is extracted and parsed for both new and old formats.
-
-2. **Update Feedback Card UI**
-   - Display feedback summary, positive and negative bullet points, and pass/fail result.
-   - Add visual cues for pass/fail (e.g., color, icon).
-   - **Success Criteria:** The card displays all new fields clearly and attractively.
-
-3. **Backward Compatibility Handling**
-   - If the old format is detected, display as before.
-   - **Success Criteria:** No errors or blank cards for old cases.
-
-4. **Testing**
-   - Add/modify tests to cover both feedback formats and error cases.
-   - **Success Criteria:** All tests pass and manual testing confirms correct display.
-
-## Project Status Board
-- [x] Update Feedback Parsing Logic
-- [x] Update Feedback Card UI
-- [x] Backward Compatibility Handling
-- [x] Testing
-
-## Executor's Feedback or Assistance Requests
-- [2025-06-02] Updated feedback parsing logic in Chat.tsx. Now detects and parses the new structured feedback format, and stores it in state. Fallback to old format is implemented. Next: Update the feedback card UI to display the new structure (summary, positive/negative points, pass/fail result).
-- [2025-06-02] Updated feedback card UI in Chat.tsx. The card now displays summary, positive/negative bullet points, and pass/fail result for the new format, and falls back to the old format if needed. Next: Verify backward compatibility and test both feedback formats.
-- [2025-06-02] Manual and code review confirm backward compatibility: both new structured feedback and old string feedback are supported and displayed correctly. Next: Testing (TDD/manual) to confirm correct display and error handling.
-- [2025-06-02] Fixed ESLint error for Vercel deployment (unused variable 'e' in catch). User will test manually on Vercel. All planned tasks complete.
-- [2025-06-02] Added logic to detect and parse [CASE COMPLETED] feedback blocks in assistant messages. Now, if the backend sends structured feedback as a chat message, it is parsed and shown in the feedback card, and the raw JSON is filtered from the chat. Awaiting user confirmation that this resolves the issue.
+## ✅ **2.1** Implemented POST `/save_performance` call in `Chat.tsx` when user clicks "Save Progress".
+## ✅ **2.2** Replaced alerts with reusable `Toast` component; shows success and badge messages.

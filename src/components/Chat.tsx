@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTokens } from "./TokenContext";
 import Image from "next/image";
 import ReactMarkdown from 'react-markdown';
+import Toast from './Toast';
 
 type ChatProps = {
   condition: string;
@@ -121,6 +122,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     const hasAppendedAssistant = useRef<boolean>(false);
     const searchParams = useSearchParams();
     const caseFocus = searchParams.get('case_focus') || 'both';
+    const [toastMsg, setToastMsg] = useState<string | null>(null);
 
     const doctorImg = "https://i.imgur.com/NYfCYKZ.png";
     const studentImg = "https://i.imgur.com/D7DZ2Wv.png";
@@ -384,14 +386,48 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     };
 
     const handleSavePerformance = async () => {
+        if (!threadId || !caseCompletionData || !caseCompletionData.structuredFeedback) {
+            alert('Nothing to save – case data incomplete.');
+            return;
+        }
         setNavLoading('logout');
         setNavError(null);
         try {
-            clearTokens();
-            router.push("/auth");
+            const payload = {
+                thread_id: threadId,
+                result: caseCompletionData.structuredFeedback.result === 'pass',
+                feedback_summary: caseCompletionData.structuredFeedback.summary,
+                feedback_positives: caseCompletionData.structuredFeedback.positive,
+                feedback_improvements: caseCompletionData.structuredFeedback.negative,
+                chat_transcript: messages.map((m) => ({ role: m.role, content: m.content })),
+            };
+
+            const res = await fetch('https://ukmla-case-tutor-api.onrender.com/save_performance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`,
+                    'X-Refresh-Token': refreshToken,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                console.error('Save performance failed:', res.status, res.statusText);
+                setNavError("Couldn't save progress. Please try again.");
+                return; // don't logout
+            } else {
+                const json = await res.json();
+                // show toast
+                setToastMsg('Progress saved successfully!');
+                if (json.badge_awarded) {
+                    setToastMsg(`🎉 New badge earned: ${json.badge_awarded}!`);
+                }
+            }
         } catch (err) {
-            setNavError('Failed to logout.');
-            console.error('Post-case nav error (logout):', err);
+            setNavError("Couldn't save progress. Please try again.");
+            console.error('Post-case nav error (save):', err);
+            // keep user on page
         } finally {
             setNavLoading(null);
         }
@@ -665,6 +701,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         )}
                     </>
                 )}
+                {toastMsg && <Toast message={toastMsg} onClose={() => setToastMsg(null)} />}
             </div>
             <style jsx global>{`
               .pixel-font ul, .pixel-font ol {

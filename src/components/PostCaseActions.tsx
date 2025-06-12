@@ -41,7 +41,7 @@ export default function PostCaseActions({
       />
       <SkeuoGetStartedButton
         onClick={onSavePerformance}
-        label="Logout"
+        label="Save Progress"
         disabled={!!navLoading}
       />
     </div>

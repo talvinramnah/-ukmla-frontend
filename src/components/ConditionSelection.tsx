@@ -9,12 +9,14 @@ interface ConditionSelectionProps {
 
 interface ConditionStats {
   total_cases: number;
-  avg_score: number;
+  pass_rate: number;
+  total_passes: number;
 }
 
 interface ConditionData {
   total_cases?: number;
-  avg_score?: number;
+  pass_rate?: number;
+  total_passes?: number;
 }
 
 // Image configuration - structured for easy expansion to multiple images
@@ -92,7 +94,7 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
                 
                 // Initialize all conditions with zero stats first
                 wardConditions.forEach(condition => {
-                  stats[condition] = { total_cases: 0, avg_score: 0.0 };
+                  stats[condition] = { total_cases: 0, total_passes: 0, pass_rate: 0 };
                 });
                 
                 // Update with actual data where available
@@ -100,8 +102,9 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
                   if (wardConditions.includes(condition)) {
                     const data = conditionData as ConditionData;
                     stats[condition] = {
-                      total_cases: data.total_cases || 0,
-                      avg_score: data.avg_score || 0.0
+                      total_cases: data.total_cases ?? 0,
+                      total_passes: data.total_passes ?? 0,
+                      pass_rate: data.pass_rate ?? 0,
                     };
                   }
                 });
@@ -319,7 +322,7 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
       {/* End Focus Toggle */}
       <div style={styles.gridContainer} className="condition-grid-responsive">
         {conditions.map((condition) => {
-          const stats = conditionStats[condition] || { total_cases: 0, avg_score: 0.0 };
+          const stats = conditionStats[condition] || { total_cases: 0, total_passes: 0, pass_rate: 0 };
           const imageSrc = getConditionImage();
           
           return (
@@ -344,7 +347,7 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
               />
               <div style={styles.stats}>
                 ✅ {stats.total_cases} cases<br />
-                📝 Avg Score: {stats.avg_score.toFixed(1)}
+                ✅ Pass Rate: {stats.pass_rate.toFixed(1)}%
               </div>
             </div>
           );
