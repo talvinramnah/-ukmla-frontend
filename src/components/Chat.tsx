@@ -395,28 +395,28 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
       }
     }, [caseCompleted, onCaseComplete]);
 
-    // In the Chat component, add a useEffect to scan messages for [CASE COMPLETED] feedback blocks when caseCompleted is true
+    // Replace the useEffect that only runs when caseCompleted is true
+    // with a useEffect that runs whenever messages change
     useEffect(() => {
-      if (!caseCompleted || !messages.length) return;
       // Only update if we don't already have structured feedback
       if (caseCompletionData && caseCompletionData.structuredFeedback) return;
       // Find the first assistant message with a [CASE COMPLETED] block
       const feedbackMsg = messages.find(
         (msg) =>
           msg.role === 'assistant' &&
-          /\[CASE COMPLETED\][^\{]*{[\s\S]+}/i.test(msg.content)
+          /\[CASE COMPLETED\][^\{]*{[\s\S]+?}/i.test(msg.content)
       );
       if (feedbackMsg) {
         const structured = parseFeedback(feedbackMsg.content);
         if (structured) {
           setCaseCompletionData((prev) =>
             prev
-              ? { ...prev, structuredFeedback: structured }
+              ? { ...prev, structuredFeedback: structured, is_completed: true }
               : { is_completed: true, feedback: feedbackMsg.content, score: 0, structuredFeedback: structured }
           );
         }
       }
-    }, [caseCompleted, messages, caseCompletionData]);
+    }, [messages, caseCompletionData]);
 
     return (
         <div className="pixel-font" style={{ background: "#180161", minHeight: "100vh", padding: 32, color: "#ffd5a6", fontFamily: "VT323" }}>
@@ -487,19 +487,23 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 {/* Structured Feedback Card */}
                 {caseCompleted && caseCompletionData && (
                     <div style={{
-                        backgroundColor: "var(--color-card)",
-                        borderRadius: "16px",
-                        padding: "20px",
-                        marginBottom: "24px",
+                        background: "#000",
+                        border: "2px solid #d77400",
+                        borderRadius: 16,
+                        padding: 20,
+                        marginBottom: 24,
+                        color: "#ffd5a6",
+                        fontFamily: "VT323",
+                        maxWidth: 600,
+                        marginLeft: "auto",
+                        marginRight: "auto",
                         boxShadow: "0 0 12px rgba(0,0,0,0.5)",
-                        border: "2px solid var(--color-accent)",
                         textAlign: "center"
                     }}>
                         <div style={{
-                            fontSize: "24px",
-                            color: "var(--color-title)",
-                            marginBottom: "16px",
-                            fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
+                            fontSize: 24,
+                            color: "#ffd5a6",
+                            marginBottom: 16,
                             fontWeight: "bold"
                         }}>
                             📋 Case Complete
@@ -510,53 +514,46 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                                     display: "flex",
                                     justifyContent: "center",
                                     alignItems: "center",
-                                    gap: "20px",
-                                    marginBottom: "16px",
+                                    gap: 20,
+                                    marginBottom: 20,
                                     flexWrap: "wrap"
                                 }}>
                                     <div style={{
-                                        backgroundColor: caseCompletionData.structuredFeedback.result === 'pass' ? '#1bbf4c' : '#d77400',
+                                        background: caseCompletionData.structuredFeedback.result === 'pass' ? "#4CAF50" : "#f44336",
                                         color: "#fff",
                                         padding: "12px 20px",
-                                        borderRadius: "8px",
-                                        fontSize: "20px",
-                                        fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
+                                        borderRadius: 8,
+                                        fontSize: 20,
                                         fontWeight: "bold"
                                     }}>
-                                        {caseCompletionData.structuredFeedback.result === 'pass' ? '✅ Pass' : '❌ Fail'}
+                                        {caseCompletionData.structuredFeedback.result === 'pass' ? "✅ PASS" : "❌ FAIL"}
                                     </div>
                                 </div>
                                 <div style={{
-                                    backgroundColor: "rgba(0,0,0,0.3)",
-                                    padding: "16px",
-                                    borderRadius: "8px",
-                                    fontSize: "18px",
-                                    color: "var(--color-text)",
-                                    fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
-                                    lineHeight: "1.4",
-                                    textAlign: "left"
+                                    textAlign: "left",
+                                    margin: "0 auto",
+                                    maxWidth: 520
                                 }}>
-                                    <div style={{
-                                        fontSize: "20px",
-                                        color: "var(--color-accent)",
-                                        marginBottom: "8px",
-                                        fontWeight: "bold"
-                                    }}>
-                                        📝 Feedback Summary:
+                                    <div style={{ marginBottom: 18 }}>
+                                        <div style={{ fontWeight: "bold", color: "#ffd5a6", fontSize: 18, marginBottom: 6 }}>Summary:</div>
+                                        <div style={{ fontSize: 18 }}>{caseCompletionData.structuredFeedback.summary}</div>
                                     </div>
-                                    <div style={{ marginBottom: 12 }}>{caseCompletionData.structuredFeedback.summary}</div>
-                                    <div style={{ fontWeight: 'bold', color: 'var(--color-accent)', marginBottom: 4 }}>👍 Positive:</div>
-                                    <ul style={{ marginBottom: 12 }}>
-                                        {caseCompletionData.structuredFeedback.positive.map((item, idx) => (
-                                            <li key={idx}>{item}</li>
-                                        ))}
-                                    </ul>
-                                    <div style={{ fontWeight: 'bold', color: 'var(--color-accent)', marginBottom: 4 }}>👎 To Improve:</div>
-                                    <ul>
-                                        {caseCompletionData.structuredFeedback.negative.map((item, idx) => (
-                                            <li key={idx}>{item}</li>
-                                        ))}
-                                    </ul>
+                                    <div style={{ marginBottom: 18 }}>
+                                        <div style={{ fontWeight: "bold", color: "#4CAF50", fontSize: 18, marginBottom: 6 }}>👍 Positive:</div>
+                                        <ul style={{ marginLeft: 24, marginBottom: 0, color: "#ffd5a6", fontSize: 17 }}>
+                                            {caseCompletionData.structuredFeedback.positive.map((item, idx) => (
+                                                <li key={idx} style={{ marginBottom: 6 }}>{item}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontWeight: "bold", color: "#FFC107", fontSize: 18, marginBottom: 6 }}>👎 To Improve:</div>
+                                        <ul style={{ marginLeft: 24, color: "#ffd5a6", fontSize: 17 }}>
+                                            {caseCompletionData.structuredFeedback.negative.map((item, idx) => (
+                                                <li key={idx} style={{ marginBottom: 6 }}>{item}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
                                 </div>
                             </>
                         ) : (
@@ -565,41 +562,28 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                                     display: "flex",
                                     justifyContent: "center",
                                     alignItems: "center",
-                                    gap: "20px",
-                                    marginBottom: "16px",
+                                    gap: 20,
+                                    marginBottom: 20,
                                     flexWrap: "wrap"
                                 }}>
                                     <div style={{
-                                        backgroundColor: "var(--color-accent)",
+                                        background: "#d77400",
                                         color: "#fff",
                                         padding: "12px 20px",
-                                        borderRadius: "8px",
-                                        fontSize: "20px",
-                                        fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
+                                        borderRadius: 8,
+                                        fontSize: 20,
                                         fontWeight: "bold"
                                     }}>
                                         ✅ Score: {caseCompletionData.score}/10
                                     </div>
                                 </div>
                                 <div style={{
-                                    backgroundColor: "rgba(0,0,0,0.3)",
-                                    padding: "16px",
-                                    borderRadius: "8px",
-                                    fontSize: "18px",
-                                    color: "var(--color-text)",
-                                    fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace",
-                                    lineHeight: "1.4",
-                                    textAlign: "left"
+                                    textAlign: "left",
+                                    margin: "0 auto",
+                                    maxWidth: 520
                                 }}>
-                                    <div style={{
-                                        fontSize: "20px",
-                                        color: "var(--color-accent)",
-                                        marginBottom: "8px",
-                                        fontWeight: "bold"
-                                    }}>
-                                        📝 Feedback:
-                                    </div>
-                                    {caseCompletionData.feedback}
+                                    <div style={{ fontWeight: "bold", color: "#ffd5a6", fontSize: 18, marginBottom: 6 }}>Feedback:</div>
+                                    <div style={{ fontSize: 18 }}>{caseCompletionData.feedback}</div>
                                 </div>
                             </>
                         )}
