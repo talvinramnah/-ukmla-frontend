@@ -470,6 +470,7 @@ const cardStyles = {
 - [2025-06-02] Updated feedback card UI in Chat.tsx. The card now displays summary, positive/negative bullet points, and pass/fail result for the new format, and falls back to the old format if needed. Next: Verify backward compatibility and test both feedback formats.
 - [2025-06-02] Manual and code review confirm backward compatibility: both new structured feedback and old string feedback are supported and displayed correctly. Next: Testing (TDD/manual) to confirm correct display and error handling.
 - [2025-06-02] Added logic to detect and parse [CASE COMPLETED] feedback blocks in assistant messages. Now, if the backend sends structured feedback as a chat message, it is parsed and shown in the feedback card, and the raw JSON is filtered from the chat. Awaiting user confirmation that this resolves the issue.
+- [2025-06-13] Improved the feedback block extraction logic in `parseFeedback` (Chat.tsx) to handle extra curly braces, whitespace, and malformed JSON. Added preprocessing to strip extra braces and whitespace, and to remove trailing commas before parsing. Next: Ensure graceful error handling and fallback UI in the feedback card, then proceed to testing and documentation.
 
 ## Lessons
 
@@ -1035,3 +1036,84 @@ To keep the product functional and unlock new analytics/leaderboard features, th
 
 ## ✅ **2.1** Implemented POST `/save_performance` call in `Chat.tsx` when user clicks "Save Progress".
 ## ✅ **2.2** Replaced alerts with reusable `Toast` component; shows success and badge messages.
+
+# Robust [CASE COMPLETED] Feedback Parsing & Display Plan (Planner Mode)
+
+---
+
+## Background and Motivation
+
+Currently, the feedback block following `[CASE COMPLETED]` in chat messages is sometimes not parsed correctly due to formatting inconsistencies (e.g., extra curly braces, missing/extra whitespace, or non-standard JSON). This leads to errors and prevents the feedback card from displaying structured feedback to the user. Ensuring robust parsing is critical for user experience and for accurate feedback display.
+
+---
+
+## Key Challenges and Analysis
+
+- **Formatting Variability:** Feedback blocks may have:
+  - Extra curly braces (`{{ ... }}` instead of `{ ... }`)
+  - Trailing/leading whitespace or newlines
+  - Non-standard JSON (e.g., single quotes, trailing commas)
+  - Feedback blocks embedded within other text or markdown
+- **Regex Extraction:** The current regex may not always extract the JSON block correctly, especially with extra braces or if the block is malformed.
+- **JSON Parsing:** `JSON.parse` is strict and will fail on any non-standard JSON.
+- **User Experience:** If parsing fails, the user sees a generic error or no feedback, which is confusing and unhelpful.
+
+---
+
+## High-level Task Breakdown
+
+### 1. **Improve Feedback Block Extraction**
+   - **Success Criteria:** The extraction logic reliably finds the feedback JSON block after `[CASE COMPLETED]`, even with extra braces or whitespace.
+   - **Subtasks:**
+     - Update the regex to match `{...}` and `{{...}}` blocks.
+     - Strip extra braces if present.
+     - Trim whitespace and newlines.
+
+### 2. **Preprocess Extracted JSON String**
+   - **Success Criteria:** The string passed to `JSON.parse` is always valid JSON or a clear, user-friendly error is shown.
+   - **Subtasks:**
+     - Remove any leading/trailing braces or whitespace.
+     - Optionally, replace single quotes with double quotes (if needed).
+     - Remove trailing commas (if present).
+     - Validate the string before parsing.
+
+### 3. **Graceful Error Handling and Fallback**
+   - **Success Criteria:** If parsing fails, display a clear error in the feedback card, and optionally show the raw feedback text.
+   - **Subtasks:**
+     - Catch and log parsing errors.
+     - Show a styled error message in the feedback card.
+     - Optionally, display the raw feedback block for debugging.
+
+### 4. **Comprehensive Testing**
+   - **Success Criteria:** All reasonable feedback block formats are parsed correctly and displayed in the card.
+   - **Subtasks:**
+     - Write unit tests for the feedback parsing function with various input formats:
+       - Standard JSON
+       - Double curly braces
+       - Extra whitespace/newlines
+       - Embedded in markdown
+       - Malformed JSON
+     - Test in the UI with real and synthetic messages.
+
+### 5. **Documentation and Lessons**
+   - **Success Criteria:** The solution and edge cases are documented in the scratchpad for future reference.
+   - **Subtasks:**
+     - Document the parsing approach and known edge cases.
+     - Add a "Lessons" entry in the scratchpad.
+
+---
+
+## Project Status Board
+
+- [x] Improve feedback block extraction logic
+- [x] Preprocess extracted JSON string for validity
+- [ ] Implement graceful error handling and fallback UI
+- [ ] Write comprehensive unit tests for parsing
+- [ ] Test in UI with various feedback formats
+- [ ] Document solution and lessons learned
+
+---
+
+## Executor's Feedback or Assistance Requests
+
+- [2025-06-13] Improved the feedback block extraction logic in `parseFeedback` (Chat.tsx) to handle extra curly braces, whitespace, and malformed JSON. Added preprocessing to strip extra braces and whitespace, and to remove trailing commas before parsing. Next: Ensure graceful error handling and fallback UI in the feedback card, then proceed to testing and documentation.

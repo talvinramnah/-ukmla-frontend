@@ -32,12 +32,23 @@ interface StructuredFeedback {
 // Helper to parse feedback from string (new or old format)
 function parseFeedback(feedback: string): StructuredFeedback | null {
   // Improved robust regex: [CASE COMPLETED] followed by any whitespace/newlines, then a JSON object
-  const match = feedback.match(/\[CASE COMPLETED\][\s\S]*?({[\s\S]+?})/i);
+  // Accepts { ... } or {{ ... }}
+  const match = feedback.match(/\[CASE COMPLETED\][\s\S]*?({{?[\s\S]+?}}?)/i);
   let jsonStr = '';
   if (match && match[1]) {
-    jsonStr = match[1];
+    jsonStr = match[1].trim();
+    // If double curly braces, strip one from each side
+    if (jsonStr.startsWith('{{') && jsonStr.endsWith('}}')) {
+      jsonStr = jsonStr.slice(1, -1).trim();
+    }
+    // Remove any leading/trailing whitespace/newlines
+    jsonStr = jsonStr.trim();
   } else if (feedback.trim().startsWith('{')) {
     jsonStr = feedback.trim();
+    // If double curly braces, strip one from each side
+    if (jsonStr.startsWith('{{') && jsonStr.endsWith('}}')) {
+      jsonStr = jsonStr.slice(1, -1).trim();
+    }
   } else {
     // Fallback: find first '{' after [CASE COMPLETED] and last '}'
     const idx = feedback.indexOf('[CASE COMPLETED]');
@@ -47,11 +58,20 @@ function parseFeedback(feedback: string): StructuredFeedback | null {
       const lastBrace = after.lastIndexOf('}');
       if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
         jsonStr = after.slice(firstBrace, lastBrace + 1);
+        // If double curly braces, strip one from each side
+        if (jsonStr.startsWith('{{') && jsonStr.endsWith('}}')) {
+          jsonStr = jsonStr.slice(1, -1).trim();
+        }
+        jsonStr = jsonStr.trim();
       }
     }
   }
   if (jsonStr) {
     try {
+      // Preprocess: Remove trailing commas (common JSON error)
+      jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
+      // Optionally: Replace single quotes with double quotes (if needed)
+      // jsonStr = jsonStr.replace(/'/g, '"');
       const obj = JSON.parse(jsonStr);
       const summary = obj['feedback summary'] || obj['feedback_summary'] || '';
       let positive: string[] = [];
@@ -68,7 +88,9 @@ function parseFeedback(feedback: string): StructuredFeedback | null {
       }
       const result = (obj['result'] || '').toLowerCase();
       return { summary, positive, negative, result };
-    } catch {
+    } catch (err) {
+      // Log error and return null for graceful fallback
+      console.error('Failed to parse case completion:', err, jsonStr);
       return null;
     }
   }
