@@ -84,9 +84,7 @@ interface CaseCompletionData {
   thread_metadata?: {
     condition: string;
     ward: string;
-    case_variation: number;
   };
-  next_case_variation?: number;
   available_actions?: string[];
 }
 
