@@ -64,18 +64,59 @@ interface FeedbackReport {
 
 // Add this helper function above the ProfileDashboard component
 function getActionPlanList(action_plan: unknown): string[] {
-  if (Array.isArray(action_plan)) return action_plan;
+  if (Array.isArray(action_plan)) {
+    // Remove code block markers, brackets, and empty strings, and clean up quoted feedback
+    return action_plan
+      .map((item) => {
+        if (
+          typeof item !== 'string' ||
+          item.trim() === '```json' ||
+          item.trim() === '```' ||
+          item.trim() === '[' ||
+          item.trim() === ']' ||
+          item.trim() === ''
+        ) {
+          return null;
+        }
+        // Remove leading/trailing quotes and commas
+        let cleaned = item.trim();
+        // Remove leading/trailing quotes
+        if (cleaned.startsWith('"')) cleaned = cleaned.slice(1);
+        if (cleaned.endsWith('",')) cleaned = cleaned.slice(0, -2);
+        else if (cleaned.endsWith('"')) cleaned = cleaned.slice(0, -1);
+        if (cleaned.endsWith(',')) cleaned = cleaned.slice(0, -1);
+        // If the string is itself a JSON array, parse and flatten
+        try {
+          if (cleaned.startsWith('[') && cleaned.endsWith(']')) {
+            const arr = JSON.parse(cleaned);
+            if (Array.isArray(arr)) {
+              return arr.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean).join('\n');
+            }
+          }
+        } catch {}
+        return cleaned.trim();
+      })
+      .flatMap((item) =>
+        item && item.includes('\n')
+          ? item.split('\n').map((s) => s.trim()).filter(Boolean)
+          : item && item.length > 0
+          ? [item]
+          : []
+      );
+  }
   if (typeof action_plan === 'string') {
     // Remove code block if present
     const codeBlockMatch = action_plan.match(/```json\s*([\s\S]+?)\s*```/i);
     const jsonStr = codeBlockMatch ? codeBlockMatch[1] : action_plan;
     try {
       const parsed = JSON.parse(jsonStr);
-      if (Array.isArray(parsed)) return parsed;
-      if (typeof parsed === 'string') return [parsed];
+      if (Array.isArray(parsed)) {
+        return parsed.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean);
+      }
+      if (typeof parsed === 'string') return [parsed.trim()];
     } catch {
       // Fallback: try splitting by newlines
-      return jsonStr.split('\n').map(s => s.trim()).filter(Boolean);
+      return jsonStr.split('\n').map((s) => s.trim()).filter(Boolean);
     }
   }
   return [];
