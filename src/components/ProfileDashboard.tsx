@@ -63,12 +63,12 @@ interface FeedbackReport {
 }
 
 // Add this helper function above the ProfileDashboard component
-function getActionPlanList(action_plan: any): string[] {
+function getActionPlanList(action_plan: unknown): string[] {
   if (Array.isArray(action_plan)) return action_plan;
   if (typeof action_plan === 'string') {
     // Remove code block if present
     const codeBlockMatch = action_plan.match(/```json\s*([\s\S]+?)\s*```/i);
-    let jsonStr = codeBlockMatch ? codeBlockMatch[1] : action_plan;
+    const jsonStr = codeBlockMatch ? codeBlockMatch[1] : action_plan;
     try {
       const parsed = JSON.parse(jsonStr);
       if (Array.isArray(parsed)) return parsed;
