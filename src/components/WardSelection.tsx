@@ -93,7 +93,7 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
     const [weeklyStats, setWeeklyStats] = useState<WeeklyDashboardStats | null>(null);
     const [weeklyStatsLoading, setWeeklyStatsLoading] = useState<boolean>(true);
     const [weeklyStatsError, setWeeklyStatsError] = useState<string | null>(null);
-    const router = typeof window !== 'undefined' ? require('next/router').useRouter() : null;
+    const router = useRouter();
 
     useEffect(() => {
         if (!accessToken || !refreshToken) return;
@@ -304,11 +304,9 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
     };
 
     const handleActionClick = (ward: string, condition: string) => {
-      if (router) {
-        const encodedWard = encodeURIComponent(ward);
-        const encodedCondition = encodeURIComponent(condition);
-        router.push(`/${encodedWard}/${encodedCondition}?case_focus=both`);
-      }
+      const encodedWard = encodeURIComponent(ward);
+      const encodedCondition = encodeURIComponent(condition);
+      router.push(`/${encodedWard}/${encodedCondition}?case_focus=both`);
     };
 
     return (
