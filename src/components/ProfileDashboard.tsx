@@ -62,6 +62,25 @@ interface FeedbackReport {
   desired_specialty?: string;
 }
 
+// Add this helper function above the ProfileDashboard component
+function getActionPlanList(action_plan: any): string[] {
+  if (Array.isArray(action_plan)) return action_plan;
+  if (typeof action_plan === 'string') {
+    // Remove code block if present
+    const codeBlockMatch = action_plan.match(/```json\s*([\s\S]+?)\s*```/i);
+    let jsonStr = codeBlockMatch ? codeBlockMatch[1] : action_plan;
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (Array.isArray(parsed)) return parsed;
+      if (typeof parsed === 'string') return [parsed];
+    } catch {
+      // Fallback: try splitting by newlines
+      return jsonStr.split('\n').map(s => s.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
 export default function ProfileDashboard() {
   const { accessToken, refreshToken } = useTokens();
   const [badges, setBadges] = useState<Badge[]>([]);
@@ -188,11 +207,18 @@ export default function ProfileDashboard() {
         </div>
         {feedbackReport ? (
           feedbackReport.report_available ? (
-            <ul style={{ fontSize: 18, lineHeight: 1.5, margin: 0, paddingLeft: 24 }}>
-              {feedbackReport.action_plan?.map((point, idx) => (
-                <li key={idx} style={{ marginBottom: 8 }}>{point}</li>
-              ))}
-            </ul>
+            (() => {
+              const actionPlanList = getActionPlanList(feedbackReport.action_plan);
+              return actionPlanList.length > 0 ? (
+                <ul style={{ fontSize: 18, lineHeight: 1.5, margin: 0, paddingLeft: 24 }}>
+                  {actionPlanList.map((point, idx) => (
+                    <li key={idx} style={{ marginBottom: 8 }}>{point}</li>
+                  ))}
+                </ul>
+              ) : (
+                <div style={{ fontSize: 18 }}>No action plan available.</div>
+              );
+            })()
           ) : (
             <div style={{ fontSize: 18 }}>
               New feedback report available in {feedbackReport.cases_until_next_report} cases
