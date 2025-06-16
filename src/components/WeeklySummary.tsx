@@ -2,11 +2,18 @@
 
 import React from 'react';
 
+interface WeeklySummaryActionPoint {
+  text: string;
+  ward: string | null;
+  condition: string | null;
+}
+
 interface WeeklySummaryProps {
   passed: number;
   failed: number;
-  actionPoints: string[];
+  actionPoints: WeeklySummaryActionPoint[];
   userName?: string;
+  onActionClick?: (ward: string, condition: string) => void;
 }
 
 export default function WeeklySummary({
@@ -14,6 +21,7 @@ export default function WeeklySummary({
   failed,
   actionPoints,
   userName = 'Anon_name',
+  onActionClick,
 }: WeeklySummaryProps) {
   // Determine greeting based on local time
   const hour = new Date().getHours();
@@ -63,6 +71,21 @@ export default function WeeklySummary({
     paddingInlineStart: 20,
   };
 
+  const actionButtonStyle: React.CSSProperties = {
+    fontWeight: 'bold',
+    fontStyle: 'italic',
+    color: '#ffd5a6',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    textDecoration: 'none',
+    transition: 'color 0.2s, text-decoration 0.2s',
+    fontSize: 20,
+    padding: 0,
+    margin: 0,
+    outline: 'none',
+  };
+
   return (
     <div style={{ marginTop: -50, marginBottom: 40 }}>
       <div style={headerStyle}>{greeting}, {userName}</div>
@@ -83,7 +106,26 @@ export default function WeeklySummary({
             <div style={{ fontSize: 22, marginBottom: 12 }}>Action points</div>
             <ul style={listStyle}>
               {actionPoints.map((pt, idx) => (
-                <li key={idx}>{pt}</li>
+                <li key={idx}>
+                  {pt.ward && pt.condition && onActionClick ? (
+                    <button
+                      style={actionButtonStyle}
+                      onClick={() => onActionClick(pt.ward!, pt.condition!)}
+                      onMouseOver={e => {
+                        (e.currentTarget as HTMLButtonElement).style.color = '#fff';
+                        (e.currentTarget as HTMLButtonElement).style.textDecoration = 'underline';
+                      }}
+                      onMouseOut={e => {
+                        (e.currentTarget as HTMLButtonElement).style.color = '#ffd5a6';
+                        (e.currentTarget as HTMLButtonElement).style.textDecoration = 'none';
+                      }}
+                    >
+                      {pt.text}
+                    </button>
+                  ) : (
+                    <span style={{ fontWeight: 'bold', fontStyle: 'italic', color: '#ffd5a6' }}>{pt.text}</span>
+                  )}
+                </li>
               ))}
             </ul>
           </div>

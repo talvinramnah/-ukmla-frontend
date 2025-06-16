@@ -944,6 +944,53 @@ Instead of separating into different pages (which conflicts with current archite
 - Integrated into `ClientLayout.tsx` with flex-column structure so TopBar appears above scrollable content, but not over Dynamic Island.
 - Added placeholder pages: `/profile`
 
+# Planner Task: Integrate /weekly_dashboard_stats into WardSelection
+
+---
+
+## Background and Motivation
+The current WardSelection component displays a hardcoded WeeklySummary with static values for cases passed, failed, and action points. A new backend endpoint `/weekly_dashboard_stats` is now available, providing real-time, user-specific weekly summary data. Integrating this endpoint will ensure users see accurate, personalized feedback and actionable recommendations, improving engagement and learning outcomes.
+
+## Key Challenges and Analysis
+- **API Integration:** Need to fetch `/weekly_dashboard_stats` using the user's `accessToken` and handle loading, error, and success states.
+- **Type Safety:** Must define a TypeScript interface for the new response shape and update props for WeeklySummary accordingly.
+- **Conditional UI:** If the user has <10 cases, show onboarding/info card and disable navigation to recommended cases.
+- **Actionable Navigation:** If action points include `ward` and `condition`, provide direct navigation buttons to those cases.
+- **Refresh Logic:** Ensure the dashboard refreshes after each case completion to update stats and action points.
+- **Error Handling:** Gracefully handle API errors, token expiry, and loading states.
+
+## High-level Task Breakdown
+
+1. **Define TypeScript Interface for API Response**
+   - Success: Interface matches API contract and is used in component state.
+2. **Implement API Call in WardSelection**
+   - Fetch `/weekly_dashboard_stats` with correct headers (Authorization: Bearer ...).
+   - Success: Data is fetched and stored in state; loading and error states handled.
+3. **Update WeeklySummary Props and Usage**
+   - Pass real data from API to WeeklySummary instead of hardcoded values.
+   - Success: UI displays live data.
+4. **Handle Onboarding/Info State (<10 cases)**
+   - If onboarding message, show info card and disable navigation to recommended cases.
+   - Success: UI matches spec for new users.
+5. **Actionable Navigation for Action Points**
+   - If action point has `ward` and `condition`, add button to navigate directly to that case.
+   - Success: Clicking button triggers correct navigation.
+6. **Refresh Logic After Case Completion**
+   - Ensure dashboard refreshes after each case completion.
+   - Success: Stats and action points update as expected.
+7. **Testing and Error Handling**
+   - Test all states: loading, error, onboarding, normal.
+   - Success: No unhandled errors; user always sees appropriate UI.
+
+## Success Criteria
+- WeeklySummary in WardSelection displays real, user-specific data from `/weekly_dashboard_stats`.
+- Action points are actionable (navigable) if possible, or show onboarding info if not.
+- UI updates after each case completion.
+- All loading and error states are handled gracefully.
+- No regression in other WardSelection or WeeklySummary functionality.
+
+---
+
 # Performance Table Redesign & Leaderboard Alignment Plan (Planner Mode)
 
 ## Background and Motivation (Updated ‑ 2025-06-12)
@@ -1005,115 +1052,15 @@ To keep the product functional and unlock new analytics/leaderboard features, th
 - [ ] **Phase 4 – Testing & QA**
 - [ ] **Phase 5 – Docs & Cleanup**
 
-## Current Status / Progress Tracking (Frontend Redesign)
+## Current Status / Progress Tracking (Executor Mode)
 
-**[2025-06-12] Executor Update**
+- [2025-06-14] Switched to Executor mode. Beginning implementation of /weekly_dashboard_stats integration in WardSelection and actionable navigation buttons in WeeklySummary.
+- Next: Define TypeScript interface for API response and set up API call in WardSelection.
 
-### Phase 1 – Audit & Interface Refactor
-- ✅ **1.1** Exhaustive grep/audit complete. Affected components identified.
-- ✅ **1.2** Completed: 
-  - Created `src/types/performance.ts`
-- ✅ **1.3** Refactored components to use new shapes.
-- ✅ **1.4** Updated UI text.
+# Executor's Feedback or Assistance Requests
 
-### Phase 2 – Save Performance Integration
-- ✅ **2.1** Implemented POST `/save_performance` call in `Chat.tsx` when user clicks "Save Progress".
-- ✅ **2.2** Replaced alerts with reusable `Toast` component; shows success and badge messages.
+- Will document any blockers, API issues, or UI/UX questions here as implementation proceeds.
 
-### Phase 3 – New Reporting Features
-- [ ] **3.1** Add Recent Cases list inside Progress modal (uses `recent_cases`).
-- [ ] **3.2** Create Leaderboard page/component consuming `/leaderboard` (design TBD).
-- [ ] **3.3** Weekly report endpoint integration (optional email style modal).
+# Lessons
 
-### Phase 4 – Comprehensive Testing
-- [ ] **4.1** Unit tests for new type guards & parsers.
-- [ ] **4.2** Cypress/Playwright happy-path E2E: login → complete case → save → view progress → leaderboard.
-- [ ] **4.3** Regression test for legacy flows (login, chat streaming, logout).
-
-### Phase 5 – Cleanup & Docs
-- [ ] **5.1** Update README & onboarding docs to describe new flows.
-- [ ] **5.2** Record "Lessons" for future schema migrations.
-
-## ✅ **2.1** Implemented POST `/save_performance` call in `Chat.tsx` when user clicks "Save Progress".
-## ✅ **2.2** Replaced alerts with reusable `Toast` component; shows success and badge messages.
-
-# Robust [CASE COMPLETED] Feedback Parsing & Display Plan (Planner Mode)
-
----
-
-## Background and Motivation
-
-Currently, the feedback block following `[CASE COMPLETED]` in chat messages is sometimes not parsed correctly due to formatting inconsistencies (e.g., extra curly braces, missing/extra whitespace, or non-standard JSON). This leads to errors and prevents the feedback card from displaying structured feedback to the user. Ensuring robust parsing is critical for user experience and for accurate feedback display.
-
----
-
-## Key Challenges and Analysis
-
-- **Formatting Variability:** Feedback blocks may have:
-  - Extra curly braces (`{{ ... }}` instead of `{ ... }`)
-  - Trailing/leading whitespace or newlines
-  - Non-standard JSON (e.g., single quotes, trailing commas)
-  - Feedback blocks embedded within other text or markdown
-- **Regex Extraction:** The current regex may not always extract the JSON block correctly, especially with extra braces or if the block is malformed.
-- **JSON Parsing:** `JSON.parse` is strict and will fail on any non-standard JSON.
-- **User Experience:** If parsing fails, the user sees a generic error or no feedback, which is confusing and unhelpful.
-
----
-
-## High-level Task Breakdown
-
-### 1. **Improve Feedback Block Extraction**
-   - **Success Criteria:** The extraction logic reliably finds the feedback JSON block after `[CASE COMPLETED]`, even with extra braces or whitespace.
-   - **Subtasks:**
-     - Update the regex to match `{...}` and `{{...}}` blocks.
-     - Strip extra braces if present.
-     - Trim whitespace and newlines.
-
-### 2. **Preprocess Extracted JSON String**
-   - **Success Criteria:** The string passed to `JSON.parse` is always valid JSON or a clear, user-friendly error is shown.
-   - **Subtasks:**
-     - Remove any leading/trailing braces or whitespace.
-     - Optionally, replace single quotes with double quotes (if needed).
-     - Remove trailing commas (if present).
-     - Validate the string before parsing.
-
-### 3. **Graceful Error Handling and Fallback**
-   - **Success Criteria:** If parsing fails, display a clear error in the feedback card, and optionally show the raw feedback text.
-   - **Subtasks:**
-     - Catch and log parsing errors.
-     - Show a styled error message in the feedback card.
-     - Optionally, display the raw feedback block for debugging.
-
-### 4. **Comprehensive Testing**
-   - **Success Criteria:** All reasonable feedback block formats are parsed correctly and displayed in the card.
-   - **Subtasks:**
-     - Write unit tests for the feedback parsing function with various input formats:
-       - Standard JSON
-       - Double curly braces
-       - Extra whitespace/newlines
-       - Embedded in markdown
-       - Malformed JSON
-     - Test in the UI with real and synthetic messages.
-
-### 5. **Documentation and Lessons**
-   - **Success Criteria:** The solution and edge cases are documented in the scratchpad for future reference.
-   - **Subtasks:**
-     - Document the parsing approach and known edge cases.
-     - Add a "Lessons" entry in the scratchpad.
-
----
-
-## Project Status Board
-
-- [x] Improve feedback block extraction logic
-- [x] Preprocess extracted JSON string for validity
-- [ ] Implement graceful error handling and fallback UI
-- [ ] Write comprehensive unit tests for parsing
-- [ ] Test in UI with various feedback formats
-- [ ] Document solution and lessons learned
-
----
-
-## Executor's Feedback or Assistance Requests
-
-- [2025-06-13] Improved the feedback block extraction logic in `parseFeedback` (Chat.tsx) to handle extra curly braces, whitespace, and malformed JSON. Added preprocessing to strip extra braces and whitespace, and to remove trailing commas before parsing. Next: Ensure graceful error handling and fallback UI in the feedback card, then proceed to testing and documentation.
+- Will record any new lessons or fixes discovered during this implementation.

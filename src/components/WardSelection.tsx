@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import WeeklySummary from './WeeklySummary';
 import Image from 'next/image';
+import type { WeeklyDashboardStats } from '../types/performance';
+import { useRouter } from 'next/router';
 
 const WARD_IMAGES: { [key: string]: string } = {
     Cardiology: "https://imgur.com/UITBIEP.png",
@@ -88,12 +90,16 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
     const [selectedWard, setSelectedWard] = useState<string | null>(null);
     const [hoveredWard, setHoveredWard] = useState<string | null>(null);
     const [userName, setUserName] = useState<string>('Anon_name');
+    const [weeklyStats, setWeeklyStats] = useState<WeeklyDashboardStats | null>(null);
+    const [weeklyStatsLoading, setWeeklyStatsLoading] = useState<boolean>(true);
+    const [weeklyStatsError, setWeeklyStatsError] = useState<string | null>(null);
+    const router = typeof window !== 'undefined' ? require('next/router').useRouter() : null;
 
     useEffect(() => {
         if (!accessToken || !refreshToken) return;
         const fetchData = async () => {
             try {
-                const [wardsRes, progressRes, metaRes] = await Promise.all([
+                const [wardsRes, progressRes, metaRes, weeklyStatsRes] = await Promise.all([
                     fetch("https://ukmla-case-tutor-api.onrender.com/wards", {
                         headers: {
                             Authorization: `Bearer ${accessToken}`,
@@ -113,15 +119,25 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                         headers: { Authorization: `Bearer ${accessToken}` },
                         credentials: "include",
                     }),
+                    fetch("https://ukmla-case-tutor-api.onrender.com/weekly_dashboard_stats", {
+                        headers: { Authorization: `Bearer ${accessToken}` },
+                        credentials: "include",
+                    }),
                 ]);
                 const wardsData = await wardsRes.json();
                 const progressData = await progressRes.json();
                 const meta = await metaRes.json();
+                const weeklyStatsData = await weeklyStatsRes.json();
                 setWardsData(wardsData.wards);
                 setProgressData(progressData.ward_stats);
                 if (meta.anon_username) setUserName(meta.anon_username);
+                setWeeklyStats(weeklyStatsData);
+                setWeeklyStatsError(null);
             } catch (err) {
-                console.error("Error loading wards or progress:", err);
+                console.error("Error loading wards, progress, or weekly stats:", err);
+                setWeeklyStatsError('Failed to load weekly summary.');
+            } finally {
+                setWeeklyStatsLoading(false);
             }
         };
         fetchData();
@@ -287,6 +303,14 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
         }
     };
 
+    const handleActionClick = (ward: string, condition: string) => {
+      if (router) {
+        const encodedWard = encodeURIComponent(ward);
+        const encodedCondition = encodeURIComponent(condition);
+        router.push(`/${encodedWard}/${encodedCondition}?case_focus=both`);
+      }
+    };
+
     return (
         <div style={{ 
             background: "var(--color-bg)", 
@@ -298,16 +322,20 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
             <div style={{ width: "100%", margin: "0 auto" }}>
                 {!selectedWard ? (
                     <div style={styles.outer} className="vcr-font">
-                        {/* Weekly summary mock */}
-                        <WeeklySummary
-                          passed={12}
-                          failed={4}
-                          actionPoints={[
-                            'Improve management on cardiology',
-                            'Improve tests on surgery',
-                          ]}
-                          userName={userName}
-                        />
+                        {/* Weekly summary section with loading/error/data states */}
+                        {weeklyStatsLoading ? (
+                          <div style={{ color: '#ffd5a6', fontFamily: 'VT323', fontSize: 22, marginBottom: 24 }}>Loading weekly summary...</div>
+                        ) : weeklyStatsError ? (
+                          <div style={{ color: 'red', fontFamily: 'VT323', fontSize: 20, marginBottom: 24 }}>{weeklyStatsError}</div>
+                        ) : weeklyStats ? (
+                          <WeeklySummary
+                            passed={weeklyStats.cases_passed}
+                            failed={weeklyStats.cases_failed}
+                            actionPoints={weeklyStats.action_points}
+                            userName={userName}
+                            onActionClick={handleActionClick}
+                          />
+                        ) : null}
                         
                         <div style={{ ...styles.conditionTitle, marginTop: 40 }}>Select a Ward</div>
                         <div style={styles.container} className="ward-grid-responsive">

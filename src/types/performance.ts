@@ -35,4 +35,15 @@ export interface ProgressData {
   condition_stats: Record<string, LevelStats>;
   recent_cases: RecentCase[];
   badges: Badge[];
+}
+
+export interface WeeklyDashboardStats {
+  cases_passed: number;
+  cases_failed: number;
+  action_points: {
+    text: string;
+    ward: string | null;
+    condition: string | null;
+  }[];
+  next_refresh_in_cases: number;
 } 
