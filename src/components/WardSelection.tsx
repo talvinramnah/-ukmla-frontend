@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import WeeklySummary from './WeeklySummary';
 import Image from 'next/image';
 import type { WeeklyDashboardStats } from '../types/performance';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 const WARD_IMAGES: { [key: string]: string } = {
     Cardiology: "https://imgur.com/UITBIEP.png",
