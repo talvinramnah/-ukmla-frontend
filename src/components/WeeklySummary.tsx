@@ -71,7 +71,17 @@ export default function WeeklySummary({
     paddingInlineStart: 20,
   };
 
-  const actionButtonStyle: React.CSSProperties = {
+  const feedbackTextStyle: React.CSSProperties = {
+    color: '#ffd5a6',
+    fontFamily: 'VT323',
+    fontSize: 20,
+    fontWeight: 'normal',
+    fontStyle: 'normal',
+    lineHeight: 1.5,
+    letterSpacing: 0,
+  };
+
+  const tryNowButtonStyle: React.CSSProperties = {
     fontWeight: 'bold',
     fontStyle: 'italic',
     color: '#ffd5a6',
@@ -84,6 +94,7 @@ export default function WeeklySummary({
     padding: 0,
     margin: 0,
     outline: 'none',
+    fontFamily: 'VT323',
   };
 
   return (
@@ -105,28 +116,37 @@ export default function WeeklySummary({
           <div>
             <div style={{ fontSize: 22, marginBottom: 12 }}>Action points</div>
             <ul style={listStyle}>
-              {actionPoints.map((pt, idx) => (
-                <li key={idx}>
-                  {pt.ward && pt.condition && onActionClick ? (
-                    <button
-                      style={actionButtonStyle}
-                      onClick={() => onActionClick(pt.ward!, pt.condition!)}
-                      onMouseOver={e => {
-                        (e.currentTarget as HTMLButtonElement).style.color = '#fff';
-                        (e.currentTarget as HTMLButtonElement).style.textDecoration = 'underline';
-                      }}
-                      onMouseOut={e => {
-                        (e.currentTarget as HTMLButtonElement).style.color = '#ffd5a6';
-                        (e.currentTarget as HTMLButtonElement).style.textDecoration = 'none';
-                      }}
-                    >
-                      {pt.text}
-                    </button>
-                  ) : (
-                    <span style={{ fontWeight: 'bold', fontStyle: 'italic', color: '#ffd5a6' }}>{pt.text}</span>
-                  )}
-                </li>
-              ))}
+              {actionPoints.map((pt, idx) => {
+                // Look for 'Try now' (case-insensitive, with or without period)
+                const tryNowMatch = pt.text.match(/(.*?)(\s*Try now\.?$)/i);
+                if (tryNowMatch && pt.ward && pt.condition && onActionClick) {
+                  const mainText = tryNowMatch[1].trim();
+                  const tryNowText = tryNowMatch[2].trim();
+                  return (
+                    <li key={idx} style={feedbackTextStyle}>
+                      {mainText}{' '}
+                      <button
+                        style={tryNowButtonStyle}
+                        onClick={() => onActionClick(pt.ward!, pt.condition!)}
+                        onMouseOver={e => {
+                          (e.currentTarget as HTMLButtonElement).style.color = '#fff';
+                          (e.currentTarget as HTMLButtonElement).style.textDecoration = 'underline';
+                        }}
+                        onMouseOut={e => {
+                          (e.currentTarget as HTMLButtonElement).style.color = '#ffd5a6';
+                          (e.currentTarget as HTMLButtonElement).style.textDecoration = 'none';
+                        }}
+                      >
+                        {tryNowText}
+                      </button>
+                    </li>
+                  );
+                } else {
+                  return (
+                    <li key={idx} style={feedbackTextStyle}>{pt.text}</li>
+                  );
+                }
+              })}
             </ul>
           </div>
         </div>
