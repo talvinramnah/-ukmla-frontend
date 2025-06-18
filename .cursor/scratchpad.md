@@ -1076,38 +1076,56 @@ To keep the product functional and unlock new analytics/leaderboard features, th
 - [x] Fixed all TypeScript and ESLint errors for Vercel deployment
 - [x] Verified UI on both user and school leaderboards (desktop & mobile)
 
+## Phase 2: Filters & State Management ✅ COMPLETE
+- [x] Implemented filter bar with dropdowns (desktop) and time filter only (mobile)
+- [x] Added debounce/throttle logic to filter changes
+- [x] Managed filter, sort, and view toggle state
+- [x] Fetched and cached filter options as needed
+
+## Phase 3: User Row & Infinite Scroll ✅ COMPLETE
+- [x] Implemented floating user row card logic
+- [x] Integrated infinite scroll for leaderboard data
+- [x] Ensured user row is highlighted and visually distinct
+
+## Phase 4: Mobile Optimization ✅ COMPLETE
+- [x] Hid all columns except "Name" and "Cases Passed" on mobile
+- [x] Only show time filter on mobile
+- [x] Ensured table is touch-friendly and responsive
+
 **Lessons Learned:**
 - TypeScript strictness and ESLint rules can block deployment; always use precise types and avoid `any`.
 - Responsive table design requires careful column management for mobile/desktop.
 - API sort/filter keys must match backend contract exactly.
 - Floating user row logic is best handled in the page, not the table component.
+- Infinite scroll requires careful state reset and loading management.
+- Mobile optimization is best handled via prop-driven column filtering.
 
-## Phase 2: Filters & State Management ⏳ IN PROGRESS
-- [ ] Implement filter bar with dropdowns (desktop) and time filter only (mobile)
-- [ ] Add debounce/throttle logic to filter changes
-- [ ] Manage filter, sort, and view toggle state
-- [ ] Fetch and cache filter options as needed
+## Phase 5: Error Handling & Polish ⏳ IN PROGRESS
+- [ ] Add comprehensive error and loading states throughout the leaderboard
+- [ ] Implement retry logic and fallback UI for network/API errors
+- [ ] Gracefully handle token expiry (e.g., prompt re-login if needed, but don't block UI)
+- [ ] Polish UI for edge cases (empty state, no results, etc.)
+- [ ] Add accessibility improvements (aria-labels, focus states, etc.)
 
 **Next Steps:**
-1. Implement filter bar UI above the leaderboard table:
-   - On desktop: dropdowns for school, year, ward, and time period
-   - On mobile: only time period filter
-2. Add state management for all filters and connect to API calls
-3. Implement debounce/throttle for filter changes to minimize API calls
-4. Add client-side caching for filter options (schools, years, wards)
-5. Test filter interactions and verify correct data updates
+1. Audit all error and loading states in the leaderboard page and table
+2. Add user-friendly error messages and retry buttons where appropriate
+3. Ensure token expiry and 401 errors are handled gracefully (e.g., prompt re-login)
+4. Add empty state UI for no results
+5. Add accessibility improvements (aria-labels, focus states)
+6. Test all error, loading, and edge cases on desktop and mobile
 
 ## Project Status Board
 - [x] Phase 1: Setup & Core Components
-- [ ] Phase 2: Filters & State Management
-- [ ] Phase 3: User Row & Infinite Scroll
-- [ ] Phase 4: Mobile Optimization
+- [x] Phase 2: Filters & State Management
+- [x] Phase 3: User Row & Infinite Scroll
+- [x] Phase 4: Mobile Optimization
 - [ ] Phase 5: Error Handling & Polish
 - [ ] Phase 6: Testing & QA
 
 ## Current Status / Progress Tracking
-- Phase 1 is complete: Leaderboard page is functional, responsive, and deploys without errors.
-- Phase 2 has started: Next up is implementing the filter bar and filter state management.
+- Phase 4 is complete: Mobile optimization is live and tested.
+- Phase 5 has started: Next up is error handling, polish, and accessibility improvements.
 
 ## Executor's Feedback or Assistance Requests
-- No blockers at this stage. Will request user feedback after filter bar implementation.
+- No blockers at this stage. Will request user feedback after error handling and polish implementation.

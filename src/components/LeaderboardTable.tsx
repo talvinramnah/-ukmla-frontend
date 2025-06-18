@@ -13,6 +13,8 @@ interface LeaderboardTableProps<T extends Record<string, unknown>> {
   sortOrder?: 'asc' | 'desc';
   onSort?: (key: keyof T) => void;
   floatingUserRow?: React.ReactNode;
+  mobileColumns?: (keyof T)[]; // Only show these columns on mobile if provided
+  onRetry?: () => void; // Retry callback for error state
 }
 
 /**
@@ -29,6 +31,8 @@ export default function LeaderboardTable<T extends Record<string, unknown>>({
   sortOrder,
   onSort,
   floatingUserRow,
+  mobileColumns,
+  onRetry,
 }: LeaderboardTableProps<T>) {
   // Responsive: detect mobile
   const [isMobile, setIsMobile] = React.useState(false);
@@ -39,11 +43,32 @@ export default function LeaderboardTable<T extends Record<string, unknown>>({
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  // Filter columns for mobile if mobileColumns is provided
+  const visibleColumns = isMobile && mobileColumns
+    ? columns.filter(col => mobileColumns.includes(col.key))
+    : columns;
+
   if (loading) {
-    return <div style={{ padding: 32, color: '#ffd5a6', fontFamily: 'VT323' }}>Loading…</div>;
+    return <div style={{ padding: 32, color: '#ffd5a6', fontFamily: 'VT323' }} aria-live="polite">Loading…</div>;
   }
   if (error) {
-    return <div style={{ padding: 32, color: '#ffd5a6', fontFamily: 'VT323' }}>Error: {error}</div>;
+    return (
+      <div style={{ padding: 32, color: '#ffd5a6', fontFamily: 'VT323' }} role="alert" aria-live="assertive">
+        Error: {error}
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            style={{ marginLeft: 16, background: '#d77400', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 18px', fontFamily: 'VT323', fontSize: 18, cursor: 'pointer' }}
+            aria-label="Retry loading leaderboard"
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    );
+  }
+  if (!loading && rows.length === 0) {
+    return <div style={{ padding: 32, color: '#ffd5a6', fontFamily: 'VT323' }} aria-live="polite">No results found.</div>;
   }
 
   return (
@@ -52,7 +77,7 @@ export default function LeaderboardTable<T extends Record<string, unknown>>({
         <div style={{ marginBottom: 16 }}>{floatingUserRow}</div>
       )}
       {!isMobile ? (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'VT323', color: '#ffd5a6', background: 'var(--color-bg)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'VT323', color: '#ffd5a6', background: 'var(--color-bg)' }} aria-label="Leaderboard table">
           <thead>
             <tr>
               {columns.map(col => (
@@ -66,6 +91,8 @@ export default function LeaderboardTable<T extends Record<string, unknown>>({
                     fontSize: 20,
                   }}
                   onClick={onSort ? () => onSort(col.key) : undefined}
+                  tabIndex={onSort ? 0 : undefined}
+                  aria-label={col.label + (onSort ? ' (sortable)' : '')}
                 >
                   {col.label}
                   {sortKey === col.key && (
@@ -88,14 +115,37 @@ export default function LeaderboardTable<T extends Record<string, unknown>>({
           </tbody>
         </table>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {rows.map((row, i) => (
-            <div key={i} style={{ background: '#181818', border: '2px solid #d77400', borderRadius: 12, padding: 16, fontSize: 18, color: '#ffd5a6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 700 }}>{row[columns[0].key] as React.ReactNode}</span>
-              <span>{row[columns[1].key] as React.ReactNode}</span>
-            </div>
-          ))}
-        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'VT323', color: '#ffd5a6', background: 'var(--color-bg)' }} aria-label="Leaderboard table (mobile)">
+          <thead>
+            <tr>
+              {visibleColumns.map(col => (
+                <th
+                  key={String(col.key)}
+                  style={{
+                    padding: '12px 8px',
+                    borderBottom: '2px solid #d77400',
+                    background: '#000',
+                    fontSize: 20,
+                  }}
+                  aria-label={col.label}
+                >
+                  {col.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} style={{ background: i % 2 === 0 ? '#181818' : '#222', fontSize: 18 }}>
+                {visibleColumns.map(col => (
+                  <td key={String(col.key)} style={{ padding: '10px 8px', textAlign: 'center', borderBottom: '1px solid #333' }}>
+                    {row[col.key] as React.ReactNode}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );

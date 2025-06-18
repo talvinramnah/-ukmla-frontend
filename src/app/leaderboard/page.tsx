@@ -276,6 +276,60 @@ export default function LeaderboardPage() {
     return null;
   }
 
+  // Retry logic for error state
+  const retryLeaderboardFetch = () => {
+    setLoading(true);
+    setError(null);
+    if (view === 'user') {
+      fetchUserLeaderboard({
+        sort_by: sortKey,
+        sort_order: sortOrder,
+        time_period: timePeriod,
+        ...(timePeriod === 'season' ? { season } : {}),
+        medical_school: selectedSchool || undefined,
+        year_group: selectedYear || undefined,
+        ward: selectedWard || undefined,
+        page: userPage,
+        page_size: 25,
+      })
+        .then(res => {
+          setUserRows(res.results);
+          setUserRow(res.user_row);
+          setHasMoreUserRows(res.results.length === 25);
+        })
+        .catch(e => {
+          if (e.message && e.message.includes('401')) {
+            setError('Session expired. Please log in again.');
+          } else {
+            setError(e.message || 'An error occurred.');
+          }
+        })
+        .finally(() => setLoading(false));
+    } else {
+      fetchSchoolLeaderboard({
+        sort_by: sortKey as 'cases_passed' | 'total_cases' | 'pass_rate',
+        sort_order: sortOrder,
+        time_period: timePeriod,
+        ...(timePeriod === 'season' ? { season } : {}),
+        page: schoolPage,
+        page_size: 25,
+      })
+        .then(res => {
+          setSchoolRows(res.results);
+          setSchoolRow(res.user_school_row);
+          setHasMoreSchoolRows(res.results.length === 25);
+        })
+        .catch(e => {
+          if (e.message && e.message.includes('401')) {
+            setError('Session expired. Please log in again.');
+          } else {
+            setError(e.message || 'An error occurred.');
+          }
+        })
+        .finally(() => setLoading(false));
+    }
+  };
+
   return (
     <div style={{ padding: 32, fontFamily: 'VT323', color: '#ffd5a6', minHeight: '100vh', background: 'var(--color-bg)' }}>
       <h2 style={{ fontSize: 32, marginBottom: 24 }}>Leaderboard</h2>
@@ -345,6 +399,8 @@ export default function LeaderboardPage() {
             sortOrder={sortOrder}
             onSort={handleSort}
             floatingUserRow={renderFloatingUserRow()}
+            mobileColumns={['username', 'cases_passed']}
+            onRetry={retryLeaderboardFetch}
           />
           <div ref={loaderRef} style={{ height: 40 }} />
           {loading && hasMoreUserRows && <div style={{ textAlign: 'center', color: '#ffd5a6', margin: 16 }}>Loading more…</div>}
@@ -360,6 +416,8 @@ export default function LeaderboardPage() {
             sortOrder={sortOrder}
             onSort={handleSort}
             floatingUserRow={renderFloatingUserRow()}
+            mobileColumns={['medical_school', 'cases_passed']}
+            onRetry={retryLeaderboardFetch}
           />
           <div ref={loaderRef} style={{ height: 40 }} />
           {loading && hasMoreSchoolRows && <div style={{ textAlign: 'center', color: '#ffd5a6', margin: 16 }}>Loading more…</div>}
