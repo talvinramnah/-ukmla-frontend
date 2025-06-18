@@ -4,7 +4,7 @@ import React from 'react';
  * Props for LeaderboardTable
  * @template T Row type
  */
-interface LeaderboardTableProps<T> {
+interface LeaderboardTableProps<T extends Record<string, unknown>> {
   columns: { key: keyof T; label: string; hideOnMobile?: boolean }[];
   rows: T[];
   loading?: boolean;
@@ -20,7 +20,7 @@ interface LeaderboardTableProps<T> {
  * - On desktop: full table with sortable columns
  * - On mobile: only columns with hideOnMobile !== true are shown
  */
-export default function LeaderboardTable<T extends { [key: string]: any }>({
+export default function LeaderboardTable<T extends Record<string, unknown>>({
   columns,
   rows,
   loading,
@@ -80,7 +80,7 @@ export default function LeaderboardTable<T extends { [key: string]: any }>({
               <tr key={i} style={{ background: i % 2 === 0 ? '#181818' : '#222', fontSize: 18 }}>
                 {columns.map(col => (
                   <td key={String(col.key)} style={{ padding: '10px 8px', textAlign: 'center', borderBottom: '1px solid #333' }}>
-                    {row[col.key]}
+                    {row[col.key] as React.ReactNode}
                   </td>
                 ))}
               </tr>
@@ -91,8 +91,8 @@ export default function LeaderboardTable<T extends { [key: string]: any }>({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {rows.map((row, i) => (
             <div key={i} style={{ background: '#181818', border: '2px solid #d77400', borderRadius: 12, padding: 16, fontSize: 18, color: '#ffd5a6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 700 }}>{row[columns[0].key]}</span>
-              <span>{row[columns[1].key]}</span>
+              <span style={{ fontWeight: 700 }}>{row[columns[0].key] as React.ReactNode}</span>
+              <span>{row[columns[1].key] as React.ReactNode}</span>
             </div>
           ))}
         </div>

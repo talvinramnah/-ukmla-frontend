@@ -51,6 +51,7 @@ export interface WeeklyDashboardStats {
 // Leaderboard API types
 
 export interface UserLeaderboardRow {
+  [key: string]: string | number;
   rank: number;
   username: string;
   med_school: string;
@@ -69,6 +70,7 @@ export interface UserLeaderboardResponse {
 }
 
 export interface SchoolLeaderboardRow {
+  [key: string]: string | number;
   rank: number;
   medical_school: string;
   num_users: number;

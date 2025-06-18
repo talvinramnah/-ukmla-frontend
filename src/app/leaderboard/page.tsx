@@ -25,7 +25,7 @@ const SCHOOL_COLUMNS: { key: keyof SchoolLeaderboardRow; label: string }[] = [
 
 export default function LeaderboardPage() {
   const [view, setView] = useState<'user' | 'school'>('user');
-  const [sortKey, setSortKey] = useState<any>('cases_passed');
+  const [sortKey, setSortKey] = useState<keyof UserLeaderboardRow | keyof SchoolLeaderboardRow>('cases_passed');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [timePeriod, setTimePeriod] = useState<'all' | 'day' | 'week' | 'month' | 'season'>('all');
   const [season, setSeason] = useState<'winter' | 'spring' | 'summer' | 'autumn'>('winter');
@@ -42,7 +42,7 @@ export default function LeaderboardPage() {
     setError(null);
     if (view === 'user') {
       fetchUserLeaderboard({
-        sort_by: sortKey,
+        sort_by: sortKey as keyof UserLeaderboardRow,
         sort_order: sortOrder,
         time_period: timePeriod,
         ...(timePeriod === 'season' ? { season } : {}),
@@ -57,7 +57,7 @@ export default function LeaderboardPage() {
         .finally(() => setLoading(false));
     } else {
       fetchSchoolLeaderboard({
-        sort_by: sortKey,
+        sort_by: sortKey as keyof SchoolLeaderboardRow,
         sort_order: sortOrder,
         time_period: timePeriod,
         ...(timePeriod === 'season' ? { season } : {}),
@@ -74,7 +74,7 @@ export default function LeaderboardPage() {
   }, [view, sortKey, sortOrder, timePeriod, season]);
 
   // Sorting handler
-  const handleSort = (key: any) => {
+  const handleSort = (key: keyof UserLeaderboardRow | keyof SchoolLeaderboardRow) => {
     if (sortKey === key) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
