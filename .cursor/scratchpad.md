@@ -1064,3 +1064,103 @@ To keep the product functional and unlock new analytics/leaderboard features, th
 # Lessons
 
 - Will record any new lessons or fixes discovered during this implementation.
+
+# Leaderboard Feature Implementation Plan (Planner Mode)
+
+## Background and Motivation
+The UKMLA Case Tutor platform needs a comprehensive leaderboard system that allows users to view and compare performance at both individual and medical school levels. The feature will enhance engagement through competition and provide valuable insights into learning progress.
+
+## Key Decisions (User Clarifications)
+- User's own row will appear as a floating card above the leaderboard table if not on the current page.
+- Time period filter will be a dropdown.
+- Ward filter will always show all wards.
+- Infinite scroll will be used instead of classic pagination.
+- Client-side caching for filter options (schools, years, wards).
+- Debounce/throttle filter changes to minimize API calls.
+- On mobile, only show "Name" and "Cases Passed" columns, sorted by cases passed. Only time filters are available on mobile. Other filters and columns are hidden for simplicity and clarity.
+- Error handling and security: prioritize smooth user experience over strict security for token expiry, retries, and network errors. Use best judgement for error messages, retries, and fallback UI.
+
+## Key Challenges and Analysis
+1. **Complex State Management**
+   - Multiple filter states (school, year, ward, time period)
+   - Infinite scroll state
+   - Sort state
+   - View toggle state (users vs schools)
+   - Need to maintain filter state when switching views
+
+2. **Performance Considerations**
+   - Large datasets with infinite scroll
+   - Frequent API calls when filters change
+   - Need to cache filter options (schools, years, wards)
+   - Debounce/throttle filter changes
+
+3. **UI/UX Complexity**
+   - Floating user row card when not on current page
+   - Responsive table design (mobile/desktop)
+   - Complex filter interactions
+   - Loading states and error handling
+
+4. **Type Safety**
+   - Complex API response types
+   - Filter parameter types
+   - Need for proper TypeScript interfaces
+
+## High-level Task Breakdown (Approved)
+
+### Phase 1: Setup & Core Components
+- [ ] Define TypeScript interfaces for API responses.
+- [ ] Create API service functions for both endpoints, with token handling and error management.
+- [ ] Implement client-side caching for filter options.
+- [ ] Create a reusable, responsive table component with sorting and infinite scroll.
+- [ ] Add loading and error states.
+
+### Phase 2: Filters & State Management
+- [ ] Implement filter bar with dropdowns (desktop) and time filter only (mobile).
+- [ ] Add debounce/throttle logic to filter changes.
+- [ ] Manage filter, sort, and view toggle state.
+- [ ] Fetch and cache filter options as needed.
+
+### Phase 3: User Row & Infinite Scroll
+- [ ] Implement floating user row card (always visible if not on current page).
+- [ ] Integrate infinite scroll for leaderboard data.
+- [ ] Ensure user row is highlighted and visually distinct.
+
+### Phase 4: Mobile Optimization
+- [ ] Hide all columns except "Name" and "Cases Passed" on mobile.
+- [ ] Only show time filter on mobile.
+- [ ] Ensure table is touch-friendly and responsive.
+
+### Phase 5: Error Handling & Polish
+- [ ] Add comprehensive error and loading states.
+- [ ] Implement retry logic and fallback UI for network/API errors.
+- [ ] Gracefully handle token expiry (e.g., prompt re-login if needed, but don't block UI).
+
+### Phase 6: Testing & QA
+- [ ] Test all filter/sort/infinite scroll combinations.
+- [ ] Test user row highlighting in all scenarios.
+- [ ] Test mobile and desktop layouts.
+- [ ] Document lessons learned and update README.
+
+## Success Criteria (Updated)
+- User can view, sort, and filter both user and school leaderboards.
+- User's row is always visible as a floating card if not on the current page.
+- Infinite scroll works smoothly and efficiently.
+- On mobile, only "Name" and "Cases Passed" are shown, with time filter.
+- All filter options are cached and filter changes are debounced.
+- Error states are handled gracefully, with relaxed security for token expiry.
+- UI is responsive, touch-friendly, and visually clear.
+
+## Project Status Board
+- [ ] **Phase 1: Setup & Core Components**
+- [ ] **Phase 2: Filters & State Management**
+- [ ] **Phase 3: User Row & Infinite Scroll**
+- [ ] **Phase 4: Mobile Optimization**
+- [ ] **Phase 5: Error Handling & Polish**
+- [ ] **Phase 6: Testing & QA**
+
+## Next Steps
+- Plan approved by user. Switching to executor mode and beginning Phase 1 implementation.
+- Will document any blockers, API issues, or UI/UX questions in the Executor's Feedback or Assistance Requests section.
+
+## Lessons
+(To be populated during implementation)

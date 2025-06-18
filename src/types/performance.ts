@@ -46,4 +46,41 @@ export interface WeeklyDashboardStats {
     condition: string | null;
   }[];
   next_refresh_in_cases: number;
+}
+
+// Leaderboard API types
+
+export interface UserLeaderboardRow {
+  rank: number;
+  username: string;
+  med_school: string;
+  year_group: string;
+  cases_passed: number;
+  total_cases: number;
+  pass_rate: number;
+}
+
+export interface UserLeaderboardResponse {
+  results: UserLeaderboardRow[];
+  total_users: number;
+  page: number;
+  page_size: number;
+  user_row: UserLeaderboardRow;
+}
+
+export interface SchoolLeaderboardRow {
+  rank: number;
+  medical_school: string;
+  num_users: number;
+  cases_passed: number;
+  total_cases: number;
+  pass_rate: number;
+}
+
+export interface SchoolLeaderboardResponse {
+  results: SchoolLeaderboardRow[];
+  total_schools: number;
+  page: number;
+  page_size: number;
+  user_school_row: SchoolLeaderboardRow;
 } 
