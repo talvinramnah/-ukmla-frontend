@@ -27,7 +27,6 @@ export default function LeaderboardPage() {
   const [view, setView] = useState<'user' | 'school'>('user');
   const [sortKey, setSortKey] = useState<'cases_passed' | 'total_cases' | 'pass_rate' | 'rank'>('cases_passed');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [filterBy, setFilterBy] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [timePeriod, setTimePeriod] = useState<'all' | 'day' | 'week' | 'month' | 'season'>('all');
   const [season, setSeason] = useState<'winter' | 'spring' | 'summer' | 'autumn'>('winter');
   const [loading, setLoading] = useState(false);
@@ -44,10 +43,6 @@ export default function LeaderboardPage() {
       setSortKey(key as 'cases_passed' | 'total_cases' | 'pass_rate' | 'rank');
       setSortOrder('desc');
     }
-  };
-
-  const handleFilter = (period: 'all' | 'today' | 'week' | 'month') => {
-    setFilterBy(period);
   };
 
   // Fetch leaderboard data
@@ -122,7 +117,11 @@ export default function LeaderboardPage() {
         >
           School Leaderboard
         </button>
-        <select value={timePeriod} onChange={e => setTimePeriod(e.target.value as any)} style={{ fontFamily: 'VT323', fontSize: 18, padding: '4px 12px', borderRadius: 6, border: '1px solid #d77400', background: '#181818', color: '#ffd5a6' }}>
+        <select 
+          value={timePeriod} 
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTimePeriod(e.target.value as 'all' | 'day' | 'week' | 'month' | 'season')} 
+          style={{ fontFamily: 'VT323', fontSize: 18, padding: '4px 12px', borderRadius: 6, border: '1px solid #d77400', background: '#181818', color: '#ffd5a6' }}
+        >
           <option value="all">All Time</option>
           <option value="day">Day</option>
           <option value="week">Week</option>
@@ -130,7 +129,11 @@ export default function LeaderboardPage() {
           <option value="season">Season</option>
         </select>
         {timePeriod === 'season' && (
-          <select value={season} onChange={e => setSeason(e.target.value as any)} style={{ fontFamily: 'VT323', fontSize: 18, padding: '4px 12px', borderRadius: 6, border: '1px solid #d77400', background: '#181818', color: '#ffd5a6' }}>
+          <select 
+            value={season} 
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSeason(e.target.value as 'winter' | 'spring' | 'summer' | 'autumn')} 
+            style={{ fontFamily: 'VT323', fontSize: 18, padding: '4px 12px', borderRadius: 6, border: '1px solid #d77400', background: '#181818', color: '#ffd5a6' }}
+          >
             <option value="winter">Winter</option>
             <option value="spring">Spring</option>
             <option value="summer">Summer</option>
