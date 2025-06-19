@@ -1,3 +1,102 @@
+# Frontend UX/UI Updates Plan (Planner Mode)
+
+## Background and Motivation
+The backend has been updated with several key improvements for launch readiness:
+- Simplified authentication (8-character password minimum, .ac.uk email validation)
+- New username format (3 random words, no numbers/prefixes)
+- Alphabetical sorting for wards and conditions
+- Ward progress tracking system with database integration
+
+Now the frontend needs corresponding updates to match these backend changes and ensure mobile responsiveness for launch.
+
+## Key Challenges and Analysis
+- **Mobile Responsiveness**: All components need polish for mobile devices
+- **Authentication Flow**: Update password validation and email domain restrictions
+- **Username Display**: Handle new 3-word username format
+- **Ward/Condition Organization**: Ensure alphabetical sorting is reflected in UI
+- **Ward Progress Tracking**: Implement checkbox UI with database persistence and visual feedback
+- **State Management**: Handle optimistic updates and error states for progress tracking
+
+## High-level Task Breakdown
+
+### Phase 1: Mobile Responsiveness Audit
+- [ ] **Task 1.1**: Audit all components for mobile responsiveness issues
+- [ ] **Task 1.2**: Update layout components (AuthModal, OnboardingModal, MainFlow)
+- [ ] **Task 1.3**: Update navigation and header components
+- [ ] **Task 1.4**: Update ward and condition selection pages
+- [ ] **Task 1.5**: Update chat and progress components
+- [ ] **Task 1.6**: Test responsive behavior across different screen sizes
+
+### Phase 2: Authentication Updates
+- [ ] **Task 2.1**: Update password validation to only check 8-character minimum
+- [ ] **Task 2.2**: Add .ac.uk email domain validation for signup
+- [ ] **Task 2.3**: Update error messages and validation feedback
+- [ ] **Task 2.4**: Test authentication flow with new requirements
+
+### Phase 3: Username Display Updates
+- [ ] **Task 3.1**: Update username display components to handle 3-word format
+- [ ] **Task 3.2**: Ensure proper spacing and styling for longer usernames
+- [ ] **Task 3.3**: Test username display across different components
+
+### Phase 4: Ward/Condition Organization
+- [ ] **Task 4.1**: Verify ward cards display in alphabetical order (should be automatic)
+- [ ] **Task 4.2**: Verify conditions display in alphabetical order within each ward
+- [ ] **Task 4.3**: Test sorting consistency across different data loads
+
+### Phase 5: Ward Progress Tracking Implementation
+- [ ] **Task 5.1**: Create WardProgressCheckbox component
+- [ ] **Task 5.2**: Implement ward progress state management
+- [ ] **Task 5.3**: Add progress toggle functionality with API integration
+- [ ] **Task 5.4**: Implement optimistic updates and error handling
+- [ ] **Task 5.5**: Add neon green border styling for completed wards
+- [ ] **Task 5.6**: Test progress persistence and UI feedback
+
+## Project Status Board
+- [ ] **Phase 1**: Mobile Responsiveness Audit
+  - [ ] Task 1.1: Component audit
+  - [ ] Task 1.2: Layout components update
+  - [ ] Task 1.3: Navigation components update
+  - [ ] Task 1.4: Selection pages update
+  - [ ] Task 1.5: Chat/progress components update
+  - [ ] Task 1.6: Responsive testing
+- [ ] **Phase 2**: Authentication Updates
+  - [ ] Task 2.1: Password validation update
+  - [ ] Task 2.2: Email domain validation
+  - [ ] Task 2.3: Error message updates
+  - [ ] Task 2.4: Authentication flow testing
+- [ ] **Phase 3**: Username Display Updates
+  - [ ] Task 3.1: Username component updates
+  - [ ] Task 3.2: Styling adjustments
+  - [ ] Task 3.3: Display testing
+- [ ] **Phase 4**: Ward/Condition Organization
+  - [ ] Task 4.1: Ward sorting verification
+  - [ ] Task 4.2: Condition sorting verification
+  - [ ] Task 4.3: Sorting consistency testing
+- [ ] **Phase 5**: Ward Progress Tracking
+  - [ ] Task 5.1: Checkbox component creation
+  - [ ] Task 5.2: State management implementation
+  - [ ] Task 5.3: API integration
+  - [ ] Task 5.4: Error handling
+  - [ ] Task 5.5: Visual feedback styling
+  - [ ] Task 5.6: Progress testing
+
+## Current Status / Progress Tracking
+- **Status**: Planning phase complete, ready for executor implementation
+- **Backend Status**: All backend changes completed and tested
+- **Next**: Begin Phase 1 - Mobile Responsiveness Audit
+
+## Executor's Feedback or Assistance Requests
+- Ready to begin implementation with Phase 1
+- All backend endpoints and database changes are confirmed working
+- Mobile responsiveness is the highest priority for launch readiness
+
+## Lessons
+- Backend-first approach ensures API contracts are stable before frontend implementation
+- Mobile responsiveness is critical for medical student user base
+- Ward progress tracking requires careful state management for good UX
+
+---
+
 # Vercel Deployment Preparation Plan (Planner Mode)
 
 ---
@@ -1092,6 +1191,13 @@ To keep the product functional and unlock new analytics/leaderboard features, th
 - [x] Only show time filter on mobile
 - [x] Ensured table is touch-friendly and responsive
 
+## Phase 5: Error Handling & Polish ✅ COMPLETE
+- [x] Added comprehensive error and loading states throughout the leaderboard
+- [x] Implemented retry logic and fallback UI for network/API errors
+- [x] Gracefully handled token expiry (prompt re-login if needed)
+- [x] Polished UI for edge cases (empty state, no results, etc.)
+- [x] Added accessibility improvements (aria-labels, focus states, etc.)
+
 **Lessons Learned:**
 - TypeScript strictness and ESLint rules can block deployment; always use precise types and avoid `any`.
 - Responsive table design requires careful column management for mobile/desktop.
@@ -1099,33 +1205,32 @@ To keep the product functional and unlock new analytics/leaderboard features, th
 - Floating user row logic is best handled in the page, not the table component.
 - Infinite scroll requires careful state reset and loading management.
 - Mobile optimization is best handled via prop-driven column filtering.
+- User-friendly error, loading, and empty states are essential for a polished experience.
+- Accessibility improvements (aria-labels, focus states) should be included from the start.
 
-## Phase 5: Error Handling & Polish ⏳ IN PROGRESS
-- [ ] Add comprehensive error and loading states throughout the leaderboard
-- [ ] Implement retry logic and fallback UI for network/API errors
-- [ ] Gracefully handle token expiry (e.g., prompt re-login if needed, but don't block UI)
-- [ ] Polish UI for edge cases (empty state, no results, etc.)
-- [ ] Add accessibility improvements (aria-labels, focus states, etc.)
+## Phase 6: Testing & QA ⏳ IN PROGRESS
+- [ ] Test all filter/sort/infinite scroll/error/empty state combinations on desktop and mobile
+- [ ] Test user row highlighting in all scenarios
+- [ ] Test accessibility (keyboard navigation, screen reader labels)
+- [ ] Document lessons learned and update README
 
 **Next Steps:**
-1. Audit all error and loading states in the leaderboard page and table
-2. Add user-friendly error messages and retry buttons where appropriate
-3. Ensure token expiry and 401 errors are handled gracefully (e.g., prompt re-login)
-4. Add empty state UI for no results
-5. Add accessibility improvements (aria-labels, focus states)
-6. Test all error, loading, and edge cases on desktop and mobile
+1. Perform comprehensive manual and automated testing of all leaderboard features
+2. Verify accessibility and usability on all supported devices
+3. Document any final lessons learned and update project documentation
+4. Prepare for final sign-off and merge to main branch
 
 ## Project Status Board
 - [x] Phase 1: Setup & Core Components
 - [x] Phase 2: Filters & State Management
 - [x] Phase 3: User Row & Infinite Scroll
 - [x] Phase 4: Mobile Optimization
-- [ ] Phase 5: Error Handling & Polish
+- [x] Phase 5: Error Handling & Polish
 - [ ] Phase 6: Testing & QA
 
 ## Current Status / Progress Tracking
-- Phase 4 is complete: Mobile optimization is live and tested.
-- Phase 5 has started: Next up is error handling, polish, and accessibility improvements.
+- Phase 5 is complete: Error handling, polish, and accessibility improvements are live and tested.
+- Phase 6 has started: Final QA and documentation in progress.
 
 ## Executor's Feedback or Assistance Requests
-- No blockers at this stage. Will request user feedback after error handling and polish implementation.
+- No blockers at this stage. Will request user feedback after final QA and documentation.

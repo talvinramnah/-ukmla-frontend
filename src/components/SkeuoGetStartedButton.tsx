@@ -93,19 +93,6 @@ export default function SkeuoGetStartedButton({ onClick, label, disabled }: { on
                         pointerEvents: "none",
                     }}
                 />
-                {/* Light streak */}
-                <div
-                    style={{
-                        position: "absolute",
-                        top: "15%",
-                        left: "-40%",
-                        width: "180%",
-                        height: "30%",
-                        background: "linear-gradient(120deg, rgba(255,255,255,0.25), rgba(255,255,255,0.05))",
-                        transform: "rotate(-8deg)",
-                        pointerEvents: "none",
-                    }}
-                />
             </motion.div>
         </div>
     );
