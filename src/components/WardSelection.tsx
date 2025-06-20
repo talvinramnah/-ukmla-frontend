@@ -5,7 +5,6 @@ import WeeklySummary from './WeeklySummary';
 import Image from 'next/image';
 import type { WeeklyDashboardStats } from '../types/performance';
 import { useRouter } from 'next/navigation';
-import WardProgressCheckbox from './WardProgressCheckbox';
 
 const WARD_IMAGES: { [key: string]: string } = {
     Cardiology: "https://imgur.com/UITBIEP.png",
@@ -94,15 +93,13 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
     const [weeklyStats, setWeeklyStats] = useState<WeeklyDashboardStats | null>(null);
     const [weeklyStatsLoading, setWeeklyStatsLoading] = useState<boolean>(true);
     const [weeklyStatsError, setWeeklyStatsError] = useState<string | null>(null);
-    const [completedWards, setCompletedWards] = useState<Set<string>>(new Set());
-    const [wardProgressLoading, setWardProgressLoading] = useState<boolean>(true);
     const router = useRouter();
 
     useEffect(() => {
         if (!accessToken || !refreshToken) return;
         const fetchData = async () => {
             try {
-                const [wardsRes, progressRes, metaRes, weeklyStatsRes, wardProgressRes] = await Promise.all([
+                const [wardsRes, progressRes, metaRes, weeklyStatsRes] = await Promise.all([
                     fetch("https://ukmla-case-tutor-api.onrender.com/wards", {
                         headers: {
                             Authorization: `Bearer ${accessToken}`,
@@ -126,33 +123,22 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                         headers: { Authorization: `Bearer ${accessToken}` },
                         credentials: "include",
                     }),
-                    fetch("https://ukmla-case-tutor-api.onrender.com/ward_progress", {
-                        headers: { Authorization: `Bearer ${accessToken}` },
-                        credentials: "include",
-                    }),
                 ]);
                 const wardsData = await wardsRes.json();
                 const progressData = await progressRes.json();
                 const meta = await metaRes.json();
                 const weeklyStatsData = await weeklyStatsRes.json();
-                const wardProgressData = await wardProgressRes.json();
                 
                 setWardsData(wardsData.wards);
                 setProgressData(progressData.ward_stats);
                 if (meta.anon_username) setUserName(meta.anon_username);
                 setWeeklyStats(weeklyStatsData);
                 setWeeklyStatsError(null);
-                
-                // Set completed wards from API response
-                if (wardProgressData.completed_wards) {
-                    setCompletedWards(new Set(wardProgressData.completed_wards));
-                }
             } catch (err) {
-                console.error("Error loading wards, progress, weekly stats, or ward progress:", err);
+                console.error("Error loading wards, progress, or weekly stats:", err);
                 setWeeklyStatsError('Failed to load weekly summary.');
             } finally {
                 setWeeklyStatsLoading(false);
-                setWardProgressLoading(false);
             }
         };
         fetchData();
@@ -328,42 +314,6 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
       router.push(`/${encodedWard}/${encodedCondition}?case_focus=both`);
     };
 
-    const handleWardProgressToggle = async (ward: string, completed: boolean) => {
-        // Optimistic update
-        const newCompletedWards = new Set(completedWards);
-        if (completed) {
-            newCompletedWards.add(ward);
-        } else {
-            newCompletedWards.delete(ward);
-        }
-        setCompletedWards(newCompletedWards);
-
-        try {
-            const response = await fetch("https://ukmla-case-tutor-api.onrender.com/ward_progress", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${accessToken}`,
-                },
-                body: JSON.stringify({
-                    ward_name: ward,
-                    is_completed: completed
-                }),
-                credentials: "include",
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to update ward progress');
-            }
-
-            // Success - keep the optimistic update
-        } catch (error) {
-            // Revert optimistic update on error
-            setCompletedWards(completedWards);
-            throw error;
-        }
-    };
-
     return (
         <div style={{ 
             background: "var(--color-bg)", 
@@ -428,14 +378,6 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                 ) : (
                     <div style={styles.centeredConditionScreen} className="vcr-font">
                         <div style={styles.conditionTitle}>Select a Condition in {WARD_DISPLAY_NAMES[selectedWard] || selectedWard}</div>
-                        <div style={{ marginBottom: '24px' }}>
-                            <WardProgressCheckbox
-                                ward={selectedWard!}
-                                isCompleted={completedWards.has(selectedWard!)}
-                                onToggle={handleWardProgressToggle}
-                                disabled={wardProgressLoading}
-                            />
-                        </div>
                         <div style={styles.conditionList}>
                             {wardsData[selectedWard]?.sort((a: string, b: string) => a.localeCompare(b)).map((condition: string) => (
                                 <button
