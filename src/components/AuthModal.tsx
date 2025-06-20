@@ -34,11 +34,6 @@ export default function AuthModal({ onSuccess }: AuthModalProps) {
   }, [mode]);
 
   const validateEmail = (email: string): string | undefined => {
-    if (mode === 'signup') {
-      if (!email.endsWith('.ac.uk')) {
-        return 'Email must be from a .ac.uk domain (academic institution)';
-      }
-    }
     if (!email.includes('@')) {
       return 'Please enter a valid email address';
     }

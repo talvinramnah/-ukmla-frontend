@@ -89,7 +89,7 @@ Now the frontend needs corresponding updates to match these backend changes and 
 
 ### **Implementation Summary**:
 - ✅ **Password Validation**: Updated to only check 8-character minimum (removed complex requirements)
-- ✅ **Email Domain Validation**: Added .ac.uk domain requirement for signup only
+- ✅ **Email Domain Validation**: ~~Added .ac.uk domain requirement for signup~~ **REMOVED - Any email domain now allowed**
 - ✅ **Real-time Validation**: Added client-side validation with immediate feedback
 - ✅ **Error Messages**: Clear, user-friendly error messages for all validation failures
 - ✅ **Visual Feedback**: Red borders on invalid fields, disabled submit button when errors exist
@@ -103,9 +103,9 @@ Now the frontend needs corresponding updates to match these backend changes and 
 - **User Experience**: Real-time validation as user types, clear error message
 
 #### **Email Domain Validation (Task 2.2)**:
-- **Requirement**: .ac.uk domain required for signup (academic institutions only)
-- **Implementation**: `validateEmail()` function checks `email.endsWith('.ac.uk')` for signup mode
-- **User Experience**: Login mode allows any email, signup mode enforces .ac.uk domain
+- **Requirement**: ~~Login mode allows any email, signup mode enforces .ac.uk domain~~ **Any email domain allowed for both login and signup**
+- **Implementation**: ~~`validateEmail()` function checks `email.endsWith('.ac.uk')` for signup mode~~ **UPDATED**
+- **User Experience**: **Any email domain allowed for both login and signup**
 
 #### **Error Messages & Validation Feedback (Task 2.3)**:
 - **Real-time Validation**: Errors appear immediately as user types
