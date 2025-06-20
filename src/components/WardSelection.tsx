@@ -337,7 +337,13 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                         
                         <div style={{ ...styles.conditionTitle, marginTop: 40 }}>Select a Ward</div>
                         <div style={styles.container} className="ward-grid-responsive">
-                            {Object.keys(wardsData).map((ward) => {
+                            {Object.keys(wardsData)
+                                .sort((a, b) => {
+                                    const displayNameA = WARD_DISPLAY_NAMES[a] || a;
+                                    const displayNameB = WARD_DISPLAY_NAMES[b] || b;
+                                    return displayNameA.localeCompare(displayNameB);
+                                })
+                                .map((ward) => {
                                 const imageSrc = WARD_IMAGES[ward];
                                 const displayName = WARD_DISPLAY_NAMES[ward] || ward;
                                 const stats = progressData?.[ward] || { total_cases: 0, total_passes: 0, pass_rate: 0 };
@@ -368,7 +374,7 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                     <div style={styles.centeredConditionScreen} className="vcr-font">
                         <div style={styles.conditionTitle}>Select a Condition in {WARD_DISPLAY_NAMES[selectedWard] || selectedWard}</div>
                         <div style={styles.conditionList}>
-                            {wardsData[selectedWard]?.map((condition: string) => (
+                            {wardsData[selectedWard]?.sort((a: string, b: string) => a.localeCompare(b)).map((condition: string) => (
                                 <button
                                     key={condition}
                                     onClick={() => onSelectCondition && onSelectCondition(condition, selectedWard!)}

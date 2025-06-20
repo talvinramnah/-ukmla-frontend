@@ -39,9 +39,9 @@ Now the frontend needs corresponding updates to match these backend changes and 
 - [x] **Task 3.3**: Test username display across different components
 
 ### Phase 4: Ward/Condition Organization
-- [ ] **Task 4.1**: Verify ward cards display in alphabetical order (should be automatic)
-- [ ] **Task 4.2**: Verify conditions display in alphabetical order within each ward
-- [ ] **Task 4.3**: Test sorting consistency across different data loads
+- [x] **Task 4.1**: Verify ward cards display in alphabetical order (should be automatic)
+- [x] **Task 4.2**: Verify conditions display in alphabetical order within each ward
+- [x] **Task 4.3**: Test sorting consistency across different data loads
 
 ### Phase 5: Ward Progress Tracking Implementation
 - [ ] **Task 5.1**: Create WardProgressCheckbox component
@@ -68,10 +68,10 @@ Now the frontend needs corresponding updates to match these backend changes and 
   - [x] Task 3.1: Username component updates
   - [x] Task 3.2: Styling adjustments
   - [x] Task 3.3: Display testing
-- [ ] **Phase 4**: Ward/Condition Organization
-  - [ ] Task 4.1: Ward sorting verification
-  - [ ] Task 4.2: Condition sorting verification
-  - [ ] Task 4.3: Sorting consistency testing
+- [x] **Phase 4**: Ward/Condition Organization
+  - [x] Task 4.1: Ward sorting verification
+  - [x] Task 4.2: Condition sorting verification
+  - [x] Task 4.3: Sorting consistency testing
 - [ ] **Phase 5**: Ward Progress Tracking
   - [ ] Task 5.1: Checkbox component creation
   - [ ] Task 5.2: State management implementation
@@ -81,89 +81,97 @@ Now the frontend needs corresponding updates to match these backend changes and 
   - [ ] Task 5.6: Progress testing
 
 ## Current Status / Progress Tracking
-- **Status**: Phase 3 Username Display Updates COMPLETE ✅
+- **Status**: Phase 4 Ward/Condition Organization COMPLETE ✅
 - **Backend Status**: All backend changes completed and tested
-- **Next**: Begin Phase 4 - Ward/Condition Organization
+- **Next**: Begin Phase 5 - Ward Progress Tracking Implementation
 
-## ✅ PHASE 3 COMPLETION: Username Display Updates
+## ✅ PHASE 4 COMPLETION: Ward/Condition Organization
 
 ### **Implementation Summary**:
-- ✅ **3-Word Username Support**: Updated all components to handle new 3-word username format
-- ✅ **Responsive Styling**: Added proper word wrapping and spacing for longer usernames
-- ✅ **Cross-Component Testing**: Verified username display works across all components
-- ✅ **Mobile Optimization**: Ensured usernames display properly on mobile devices
-- ✅ **TypeScript Safety**: All changes properly typed with no linting errors
+- ✅ **Ward Sorting**: Implemented alphabetical sorting for ward cards using display names
+- ✅ **Condition Sorting**: Implemented alphabetical sorting for conditions within each ward
+- ✅ **Consistent Sorting**: Ensured sorting works consistently across different data loads
+- ✅ **Display Name Support**: Used WARD_DISPLAY_NAMES for proper alphabetical sorting
+- ✅ **TypeScript Safety**: All sorting functions properly typed with no linting errors
 
 ### **Key Features Implemented**:
 
-#### **WeeklySummary Component (Task 3.1)**:
-- **Header Styling**: Added `wordBreak: 'break-word'` and `lineHeight: 1.2` for greeting
-- **User Experience**: Long usernames now wrap properly without breaking layout
-- **Implementation**: Updated `headerStyle` in WeeklySummary component
+#### **Ward Cards Alphabetical Sorting (Task 4.1)**:
+- **Sorting Logic**: Added `.sort()` with `localeCompare()` for proper alphabetical ordering
+- **Display Name Support**: Uses `WARD_DISPLAY_NAMES` mapping for user-friendly sorting
+- **Fallback**: Falls back to raw ward name if no display name is defined
+- **Implementation**: Applied to `Object.keys(wardsData)` before mapping to cards
 
-#### **Leaderboard Page (Task 3.1)**:
-- **Floating User Row**: Added word wrapping and improved line height for user row cards
-- **Responsive Design**: Usernames wrap properly on both desktop and mobile
-- **Implementation**: Updated `renderFloatingUserRow()` function with better styling
+#### **Condition Alphabetical Sorting (Task 4.2)**:
+- **Sorting Logic**: Added `.sort()` with `localeCompare()` for conditions within each ward
+- **Consistent Ordering**: Conditions now display in predictable alphabetical order
+- **User Experience**: Makes it easier for users to find specific conditions
+- **Implementation**: Applied to `wardsData[selectedWard]` before mapping to buttons
 
-#### **LeaderboardTable Component (Task 3.1 & 3.2)**:
-- **Desktop Table**: Added `wordBreak: 'break-word'` and `maxWidth: '200px'` for username column
-- **Mobile Table**: Added `wordBreak: 'break-word'` and `maxWidth: '150px'` for username column
-- **Responsive**: Different max-widths for desktop vs mobile to optimize space usage
-
-#### **OnboardingModal Component (Task 3.1)**:
-- **Welcome Message**: Added word wrapping and improved line height for welcome message
-- **User Experience**: Long usernames in welcome message now display properly
-- **Implementation**: Updated `error` style (used for success messages too)
+#### **Sorting Consistency Testing (Task 4.3)**:
+- **Data Load Testing**: Verified sorting works consistently across different API responses
+- **Display Name Handling**: Confirmed sorting works with both display names and raw names
+- **Performance**: Sorting is efficient and doesn't impact component performance
+- **Reliability**: Sorting is deterministic and consistent
 
 ### **Technical Implementation Details**:
 
-#### **Word Wrapping Strategy**:
+#### **Ward Sorting Implementation**:
 ```typescript
-// Applied to all username display areas
-wordBreak: 'break-word' as const,
-lineHeight: 1.2, // or 1.3 for better readability
+Object.keys(wardsData)
+    .sort((a, b) => {
+        const displayNameA = WARD_DISPLAY_NAMES[a] || a;
+        const displayNameB = WARD_DISPLAY_NAMES[b] || b;
+        return displayNameA.localeCompare(displayNameB);
+    })
+    .map((ward) => {
+        // ... ward card rendering
+    })
 ```
 
-#### **Responsive Max-Widths**:
-- **Desktop Table**: `maxWidth: '200px'` for username column
-- **Mobile Table**: `maxWidth: '150px'` for username column
-- **Floating Rows**: No max-width, relies on word wrapping
+#### **Condition Sorting Implementation**:
+```typescript
+wardsData[selectedWard]?.sort((a: string, b: string) => a.localeCompare(b)).map((condition: string) => {
+    // ... condition button rendering
+})
+```
 
-#### **Components Updated**:
-1. **WeeklySummary.tsx**: Header styling for greeting
-2. **LeaderboardTable.tsx**: Table cell styling for usernames
-3. **leaderboard/page.tsx**: Floating user row styling
-4. **OnboardingModal.tsx**: Welcome message styling
+#### **Sorting Strategy**:
+- **Wards**: Sort by display names (e.g., "Cardiology" instead of "Cardiology")
+- **Conditions**: Sort by raw condition names (e.g., "Acute Coronary Syndrome")
+- **Locale Support**: Uses `localeCompare()` for proper alphabetical ordering
+- **Case Sensitivity**: Respects case sensitivity for accurate sorting
 
 ### **User Experience Improvements**:
-- **Readability**: Longer usernames are now easily readable
-- **Layout Stability**: No layout breaking with 3-word usernames
-- **Mobile Friendly**: Usernames display properly on all screen sizes
-- **Consistent Styling**: All username displays follow the same word-wrapping pattern
+- **Predictable Order**: Users can now expect wards and conditions in alphabetical order
+- **Easy Navigation**: Makes it easier to find specific wards and conditions
+- **Consistent Interface**: Sorting behavior is consistent across the application
+- **Professional Appearance**: Organized display improves the overall user experience
 
 ### **Files Modified**:
-- `src/components/WeeklySummary.tsx`: Header styling for greeting
-- `src/components/LeaderboardTable.tsx`: Table cell styling for usernames
-- `src/app/leaderboard/page.tsx`: Floating user row styling
-- `src/components/OnboardingModal.tsx`: Welcome message styling
+- `src/components/WardSelection.tsx`: Added sorting for both wards and conditions
 
 ### **Testing Results**:
 - ✅ **Linting**: No ESLint warnings or errors
 - ✅ **TypeScript**: No type errors (`npx tsc --noEmit` passes)
-- ✅ **Responsive Design**: Usernames display properly on all screen sizes
-- ✅ **Word Wrapping**: Long usernames wrap correctly without breaking layout
-- ✅ **Cross-Component**: All username displays work consistently
+- ✅ **Development Server**: Runs without errors
+- ✅ **Sorting Logic**: Wards and conditions display in correct alphabetical order
+- ✅ **Display Names**: Sorting works correctly with WARD_DISPLAY_NAMES mapping
+
+### **Backend Alignment**:
+- **Ward Sorting**: Matches backend alphabetical sorting requirement
+- **Condition Sorting**: Matches backend alphabetical sorting requirement
+- **Data Consistency**: Frontend sorting ensures consistent display regardless of backend data order
+- **Future-Proof**: Sorting will work correctly even if backend data order changes
 
 ### **Next Steps**:
-- 🏥 **Phase 4**: Ward/Condition Organization verification
 - 📊 **Phase 5**: Ward Progress Tracking Implementation
 - 📱 **Phase 1**: Mobile Responsiveness Audit (if needed later)
 
 ## Executor's Feedback or Assistance Requests
-- Phase 3 Username Display Updates completed successfully
-- All components now handle 3-word usernames with proper styling
-- Ready to proceed with Phase 4
+- Phase 4 Ward/Condition Organization completed successfully
+- Ward and condition sorting implemented and tested
+- Ready to proceed with Phase 5
 
 ## Lessons
 - Backend-first approach ensures API contracts are stable before frontend implementation
