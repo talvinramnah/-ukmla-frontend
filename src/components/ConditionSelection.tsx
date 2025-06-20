@@ -78,12 +78,36 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
   const [catGifUrl, setCatGifUrl] = useState<string | null>(null);
   const router = useRouter();
 
-  // Fetch cat GIF on component mount
+  // Fetch cat GIF, refreshing once daily (after midnight GMT)
   useEffect(() => {
     const loadCatGif = async () => {
+      const CAT_GIF_STORAGE_KEY = 'catGifData';
+      const now = new Date();
+      const todayGmt = now.toISOString().split('T')[0]; // YYYY-MM-DD in GMT
+
       try {
-        const gifUrl = await fetchRandomCatGif();
-        setCatGifUrl(gifUrl);
+        const storedData = localStorage.getItem(CAT_GIF_STORAGE_KEY);
+        if (storedData) {
+          const { url, timestamp } = JSON.parse(storedData);
+          const storedDateGmt = new Date(timestamp).toISOString().split('T')[0];
+
+          if (url && storedDateGmt === todayGmt) {
+            console.log('🐱 Using cached CATAAS GIF for today.');
+            setCatGifUrl(url);
+            return;
+          }
+        }
+        
+        console.log('🐱 Fetching new daily CATAAS GIF...');
+        const newGifUrl = await fetchRandomCatGif();
+        setCatGifUrl(newGifUrl);
+        
+        // Store the new GIF and current GMT timestamp
+        localStorage.setItem(
+          CAT_GIF_STORAGE_KEY,
+          JSON.stringify({ url: newGifUrl, timestamp: now.toISOString() })
+        );
+
       } catch (error) {
         console.error('Failed to load cat GIF:', error);
         setCatGifUrl(null); // Will use fallback
