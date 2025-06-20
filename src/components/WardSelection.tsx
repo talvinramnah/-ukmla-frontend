@@ -5,6 +5,7 @@ import WeeklySummary from './WeeklySummary';
 import Image from 'next/image';
 import type { WeeklyDashboardStats } from '../types/performance';
 import { useRouter } from 'next/navigation';
+import WardProgressCheckbox from './WardProgressCheckbox';
 
 const WARD_IMAGES: { [key: string]: string } = {
     Cardiology: "https://imgur.com/UITBIEP.png",
@@ -93,13 +94,15 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
     const [weeklyStats, setWeeklyStats] = useState<WeeklyDashboardStats | null>(null);
     const [weeklyStatsLoading, setWeeklyStatsLoading] = useState<boolean>(true);
     const [weeklyStatsError, setWeeklyStatsError] = useState<string | null>(null);
+    const [completedWards, setCompletedWards] = useState<Set<string>>(new Set());
+    const [wardProgressLoading, setWardProgressLoading] = useState<boolean>(true);
     const router = useRouter();
 
     useEffect(() => {
         if (!accessToken || !refreshToken) return;
         const fetchData = async () => {
             try {
-                const [wardsRes, progressRes, metaRes, weeklyStatsRes] = await Promise.all([
+                const [wardsRes, progressRes, metaRes, weeklyStatsRes, wardProgressRes] = await Promise.all([
                     fetch("https://ukmla-case-tutor-api.onrender.com/wards", {
                         headers: {
                             Authorization: `Bearer ${accessToken}`,
@@ -123,21 +126,33 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                         headers: { Authorization: `Bearer ${accessToken}` },
                         credentials: "include",
                     }),
+                    fetch("https://ukmla-case-tutor-api.onrender.com/ward_progress", {
+                        headers: { Authorization: `Bearer ${accessToken}` },
+                        credentials: "include",
+                    }),
                 ]);
                 const wardsData = await wardsRes.json();
                 const progressData = await progressRes.json();
                 const meta = await metaRes.json();
                 const weeklyStatsData = await weeklyStatsRes.json();
+                const wardProgressData = await wardProgressRes.json();
+                
                 setWardsData(wardsData.wards);
                 setProgressData(progressData.ward_stats);
                 if (meta.anon_username) setUserName(meta.anon_username);
                 setWeeklyStats(weeklyStatsData);
                 setWeeklyStatsError(null);
+                
+                // Set completed wards from API response
+                if (wardProgressData.completed_wards) {
+                    setCompletedWards(new Set(wardProgressData.completed_wards));
+                }
             } catch (err) {
-                console.error("Error loading wards, progress, or weekly stats:", err);
+                console.error("Error loading wards, progress, weekly stats, or ward progress:", err);
                 setWeeklyStatsError('Failed to load weekly summary.');
             } finally {
                 setWeeklyStatsLoading(false);
+                setWardProgressLoading(false);
             }
         };
         fetchData();
@@ -172,7 +187,7 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
             boxShadow: "0 0 12px rgba(0,0,0,0.5)",
             textAlign: "center" as const,
             cursor: "pointer",
-            transition: "transform 0.2s, box-shadow 0.2s",
+            transition: "transform 0.2s, box-shadow 0.2s, border 0.2s",
             display: "flex",
             flexDirection: "column" as const,
             alignItems: "center",
@@ -181,6 +196,10 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
         cardHover: {
             transform: "translateY(-6px)",
             boxShadow: "0 0 18px var(--color-accent)",
+        },
+        cardCompleted: {
+            border: "3px solid #00ff00",
+            boxShadow: "0 0 12px rgba(0,0,0,0.5), 0 0 8px #00ff00",
         },
         title: {
             fontSize: "10px",
@@ -309,6 +328,42 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
       router.push(`/${encodedWard}/${encodedCondition}?case_focus=both`);
     };
 
+    const handleWardProgressToggle = async (ward: string, completed: boolean) => {
+        // Optimistic update
+        const newCompletedWards = new Set(completedWards);
+        if (completed) {
+            newCompletedWards.add(ward);
+        } else {
+            newCompletedWards.delete(ward);
+        }
+        setCompletedWards(newCompletedWards);
+
+        try {
+            const response = await fetch("https://ukmla-case-tutor-api.onrender.com/ward_progress", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                    ward: ward,
+                    completed: completed
+                }),
+                credentials: "include",
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update ward progress');
+            }
+
+            // Success - keep the optimistic update
+        } catch (error) {
+            // Revert optimistic update on error
+            setCompletedWards(completedWards);
+            throw error;
+        }
+    };
+
     return (
         <div style={{ 
             background: "var(--color-bg)", 
@@ -353,6 +408,7 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                                         style={{
                                             ...styles.card,
                                             ...(hoveredWard === ward ? styles.cardHover : {}),
+                                            ...(completedWards.has(ward) ? styles.cardCompleted : {}),
                                         }}
                                         onClick={() => onWardClick(ward)}
                                         onMouseEnter={() => setHoveredWard(ward)}
@@ -364,6 +420,17 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                                         <div style={styles.stat}>
                                             ✅ {stats.total_cases} cases<br />
                                             ✅ Pass Rate: {stats.pass_rate.toFixed(1)}%
+                                        </div>
+                                        <div 
+                                            style={{ marginTop: '12px' }}
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <WardProgressCheckbox
+                                                ward={ward}
+                                                isCompleted={completedWards.has(ward)}
+                                                onToggle={handleWardProgressToggle}
+                                                disabled={wardProgressLoading}
+                                            />
                                         </div>
                                     </div>
                                 );
