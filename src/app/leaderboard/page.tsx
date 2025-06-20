@@ -261,14 +261,34 @@ export default function LeaderboardPage() {
   function renderFloatingUserRow() {
     if (view === 'user' && userRow && !userRows.some(r => r.rank === userRow.rank)) {
       return (
-        <div style={{ background: '#222', border: '2px solid #d77400', borderRadius: 12, padding: 16, color: '#ffd5a6', fontFamily: 'VT323', marginBottom: 8 }}>
+        <div style={{ 
+          background: '#222', 
+          border: '2px solid #d77400', 
+          borderRadius: 12, 
+          padding: 16, 
+          color: '#ffd5a6', 
+          fontFamily: 'VT323', 
+          marginBottom: 8,
+          wordBreak: 'break-word' as const,
+          lineHeight: 1.3,
+        }}>
           <b>Your Rank:</b> {userRow.rank} | <b>Username:</b> {userRow.username} | <b>School:</b> {userRow.med_school} | <b>Cases Passed:</b> {userRow.cases_passed} | <b>Pass Rate:</b> {userRow.pass_rate}%
         </div>
       );
     }
     if (view === 'school' && schoolRow && !schoolRows.some(r => r.rank === schoolRow.rank)) {
       return (
-        <div style={{ background: '#222', border: '2px solid #d77400', borderRadius: 12, padding: 16, color: '#ffd5a6', fontFamily: 'VT323', marginBottom: 8 }}>
+        <div style={{ 
+          background: '#222', 
+          border: '2px solid #d77400', 
+          borderRadius: 12, 
+          padding: 16, 
+          color: '#ffd5a6', 
+          fontFamily: 'VT323', 
+          marginBottom: 8,
+          wordBreak: 'break-word' as const,
+          lineHeight: 1.3,
+        }}>
           <b>Your School Rank:</b> {schoolRow.rank} | <b>School:</b> {schoolRow.medical_school} | <b>Cases Passed:</b> {schoolRow.cases_passed} | <b>Pass Rate:</b> {schoolRow.pass_rate}%
         </div>
       );

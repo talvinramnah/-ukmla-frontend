@@ -106,7 +106,13 @@ export default function LeaderboardTable<T extends Record<string, unknown>>({
             {rows.map((row, i) => (
               <tr key={i} style={{ background: i % 2 === 0 ? '#181818' : '#222', fontSize: 18 }}>
                 {columns.map(col => (
-                  <td key={String(col.key)} style={{ padding: '10px 8px', textAlign: 'center', borderBottom: '1px solid #333' }}>
+                  <td key={String(col.key)} style={{ 
+                    padding: '10px 8px', 
+                    textAlign: 'center', 
+                    borderBottom: '1px solid #333',
+                    wordBreak: 'break-word' as const,
+                    maxWidth: col.key === 'username' ? '200px' : undefined,
+                  }}>
                     {row[col.key] as React.ReactNode}
                   </td>
                 ))}
@@ -138,7 +144,13 @@ export default function LeaderboardTable<T extends Record<string, unknown>>({
             {rows.map((row, i) => (
               <tr key={i} style={{ background: i % 2 === 0 ? '#181818' : '#222', fontSize: 18 }}>
                 {visibleColumns.map(col => (
-                  <td key={String(col.key)} style={{ padding: '10px 8px', textAlign: 'center', borderBottom: '1px solid #333' }}>
+                  <td key={String(col.key)} style={{ 
+                    padding: '10px 8px', 
+                    textAlign: 'center', 
+                    borderBottom: '1px solid #333',
+                    wordBreak: 'break-word' as const,
+                    maxWidth: col.key === 'username' ? '150px' : undefined,
+                  }}>
                     {row[col.key] as React.ReactNode}
                   </td>
                 ))}

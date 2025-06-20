@@ -232,6 +232,8 @@ export default function OnboardingModal({ accessToken, onComplete }: OnboardingM
             fontSize: "10px",
             marginTop: "8px",
             fontFamily: "'Press Start 2P', monospace",
+            wordBreak: "break-word" as const,
+            lineHeight: 1.4,
         },
     };
 

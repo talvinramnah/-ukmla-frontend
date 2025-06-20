@@ -43,6 +43,8 @@ export default function WeeklySummary({
   const headerStyle: React.CSSProperties = {
     fontSize: 28,
     marginBottom: 16,
+    wordBreak: 'break-word' as const,
+    lineHeight: 1.2,
   };
 
   const gridStyle: React.CSSProperties = {
