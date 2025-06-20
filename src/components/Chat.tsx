@@ -142,6 +142,8 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     const caseFocus = searchParams.get('case_focus') || 'both';
     const [toastMsg, setToastMsg] = useState<string | null>(null);
     const [hasSaved, setHasSaved] = useState(false);
+    const [showScrollToTop, setShowScrollToTop] = useState(false);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
 
     const doctorImg = "https://i.imgur.com/NYfCYKZ.png";
     const studentImg = "https://i.imgur.com/D7DZ2Wv.png";
@@ -452,11 +454,36 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
         }
     };
 
+    const handleScrollToTop = () => {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    const handleScroll = () => {
+        if (chatContainerRef.current) {
+            const scrollTop = chatContainerRef.current.scrollTop;
+            setShowScrollToTop(scrollTop > 100); // Show button when scrolled down more than 100px
+        }
+    };
+
     useEffect(() => {
       if (caseCompleted && onCaseComplete) {
         onCaseComplete();
       }
     }, [caseCompleted, onCaseComplete]);
+
+    // Add scroll event listener
+    useEffect(() => {
+        const container = chatContainerRef.current;
+        if (container) {
+            container.addEventListener('scroll', handleScroll);
+            return () => container.removeEventListener('scroll', handleScroll);
+        }
+    }, []);
 
     // Replace the useEffect that only runs when caseCompleted is true
     // with a useEffect that runs whenever messages change
@@ -529,12 +556,12 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     }, [messages, caseCompletionData, hasSaved, threadId, accessToken, refreshToken]);
 
     return (
-        <div className="pixel-font" style={{ background: "#180161", minHeight: "100vh", padding: 32, color: "#ffd5a6", fontFamily: "VT323" }}>
+        <div className="pixel-font" ref={chatContainerRef} style={{ background: "#180161", minHeight: "100vh", padding: 32, color: "#ffd5a6", fontFamily: "VT323", overflowY: "auto" }}>
             <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <h2 style={{ fontSize: "24px", marginBottom: "20px", textAlign: leftAlignTitle ? 'left' : 'center' }}>
+                <h2 className="chat-title" style={{ fontSize: "24px", marginBottom: "20px", textAlign: leftAlignTitle ? 'left' : 'center' }}>
                     {decodeURIComponent(condition)}
                 </h2>
-                <div style={{ marginBottom: 16, fontSize: 16, color: '#ffd5a6', fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace" }}>
+                <div className="chat-case-focus" style={{ marginBottom: 16, fontSize: 16, color: '#ffd5a6', fontFamily: "'VT323', 'VCR OSD Mono', 'Press Start 2P', monospace" }}>
                   <span style={{ background: '#d77400', color: '#fff', borderRadius: 6, padding: '4px 12px', fontWeight: 'bold' }}>
                     Case Focus: {caseFocus.charAt(0).toUpperCase() + caseFocus.slice(1)}
                   </span>
@@ -571,15 +598,16 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             backgroundColor: "#000",
                             border: "2px solid #d77400",
                             borderRadius: "12px",
-                            padding: "14px",
+                            padding: "16px",
                             fontSize: "18px",
                             color: "#ffd5a6",
                             maxWidth: "75%",
-                            whiteSpace: "pre-line"
+                            whiteSpace: "pre-line",
+                            lineHeight: "1.5"
                         };
 
                         return (
-                            <div key={idx} style={messageRowStyle}>
+                            <div key={idx} className="chat-message-gap" style={messageRowStyle}>
                                 <Image
                                     src={avatar}
                                     alt={msg.role}
@@ -587,7 +615,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                                     height={48}
                                     style={{ imageRendering: "pixelated" }}
                                 />
-                                <div style={bubbleStyle}>
+                                <div className="chat-message-bubble" style={bubbleStyle}>
                                     {renderMessage(msg)}
                                 </div>
                             </div>
@@ -719,6 +747,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                                     handleSend();
                                 }
                             }}
+                            className="chat-input-field"
                             style={{
                                 flex: 1,
                                 padding: "14px",
@@ -734,6 +763,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         <button
                             onClick={handleSend}
                             disabled={loading}
+                            className="chat-send-button"
                             style={{
                                 padding: "14px 20px",
                                 backgroundColor: "#d77400",
@@ -747,6 +777,27 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         >
                             {loading ? "..." : "Send"}
                         </button>
+                        {showScrollToTop && (
+                            <button
+                                onClick={handleScrollToTop}
+                                style={{
+                                    padding: "14px 16px",
+                                    backgroundColor: "#000",
+                                    color: "#ffd5a6",
+                                    border: "2px solid #d77400",
+                                    borderRadius: "6px",
+                                    fontFamily: "VT323",
+                                    fontSize: "18px",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center"
+                                }}
+                                title="Scroll to top"
+                            >
+                                ↑
+                            </button>
+                        )}
                     </div>
                 )}
                 {showActions && (
@@ -790,6 +841,53 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                 border-radius: 4px;
                 padding: 2px 6px;
                 font-size: 16px;
+              }
+              
+              /* Responsive typography for Chat component */
+              @media (min-width: 1024px) {
+                .chat-message-bubble {
+                  font-size: 20px !important;
+                  padding: 18px !important;
+                  max-width: 80% !important;
+                }
+                .chat-input-field {
+                  font-size: 20px !important;
+                }
+                .chat-send-button {
+                  font-size: 20px !important;
+                }
+                .chat-title {
+                  font-size: 28px !important;
+                }
+                .chat-case-focus {
+                  font-size: 18px !important;
+                }
+                .chat-message-gap {
+                  margin-bottom: 20px !important;
+                }
+              }
+              
+              @media (min-width: 1440px) {
+                .chat-message-bubble {
+                  font-size: 22px !important;
+                  padding: 20px !important;
+                  max-width: 85% !important;
+                }
+                .chat-input-field {
+                  font-size: 22px !important;
+                }
+                .chat-send-button {
+                  font-size: 22px !important;
+                }
+                .chat-title {
+                  font-size: 32px !important;
+                }
+                .chat-case-focus {
+                  font-size: 20px !important;
+                }
+                .chat-message-gap {
+                  margin-bottom: 24px !important;
+                }
               }
             `}</style>
         </div>

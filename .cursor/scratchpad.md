@@ -82,8 +82,10 @@ Now the frontend needs corresponding updates to match these backend changes and 
 
 ## Current Status / Progress Tracking
 - **Status**: EXECUTOR MODE ACTIVE - Starting Phase 1 implementation
-- **API Documentation**: CATAAS API reviewed - using `/cat/gif` for GIFs, `/cat` for static fallback
-- **Next**: Implementing CATAAS API service function with 2-second timeout
+- **Priority**: High - Directly impacts user experience on laptops/monitors
+- **Estimated Timeline**: 1-2 days for simple improvements
+- **Scope**: Minimal changes, no color changes, no complex features
+- **Next**: Implementing Phase 1 - Simple Typography Improvements
 
 ## Executor's Feedback or Assistance Requests
 - **EXECUTOR MODE**: Starting Phase 1 Task 1.1 - Creating CATAAS API service function
@@ -1388,3 +1390,122 @@ The widgets should be responsive, fit any screen size, and persist data for the 
   - ✅ Responsive design: Works in 320px container, maintains 70/30 split
   - ✅ Theme consistency: Matches app's orange/dark theme and VT323 font
 - **Ready for testing**: Widgets are fully functional and ready for user testing
+
+# Chat Legibility Improvement Plan (Planner Mode) - REVISED
+
+## Background and Motivation
+Users are reporting legibility issues with the Chat.tsx component across different screen sizes and use cases. Medical students use the application in various environments:
+- Large monitors in libraries
+- Projectors in lecture halls  
+- Laptops for individual study
+- Mobile phones for quick reference
+
+The current chat interface needs responsive typography and improved navigation to enhance readability across all these scenarios.
+
+## Key Challenges and Analysis
+- **Responsive Typography**: Current font size (18px) may be too small for large monitors and projectors
+- **Screen Size Adaptation**: Need different font sizes for different screen sizes (mobile, tablet, desktop, large displays)
+- **Navigation**: Users need easy access to patient information at the top of the chat
+- **Contrast and Spacing**: May need improvements to text contrast and line spacing for better readability
+- **Message Bubble Sizing**: Current max-width (75%) may not be optimal for all screen sizes
+
+## User Requirements (Updated)
+1. **Focus on simple improvements** - No complex features that could introduce issues
+2. **Target laptops and larger monitors** - Prioritize desktop/laptop experience
+3. **Scroll-to-top button only when scrolled down** - Not always visible
+4. **Stick to current theme** - NO color changes, maintain existing design
+
+## High-level Task Breakdown
+
+### Phase 1: Simple Typography Improvements
+- [ ] **Task 1.1**: Increase base font sizes for larger screens
+  - Laptop (1024px+): Increase from 18px to 20px
+  - Large monitors (1440px+): Increase to 22px
+  - Keep mobile/tablet at current 18px
+  - Success Criteria: Text is larger and more readable on laptops/monitors
+
+- [ ] **Task 1.2**: Improve line spacing in message bubbles
+  - Increase line-height from current to 1.5
+  - Slightly increase padding for better text breathing room
+  - Success Criteria: Messages are easier to read with better spacing
+
+- [ ] **Task 1.3**: Update input field to match
+  - Increase input font size to match message text
+  - Ensure placeholder text is also larger
+  - Success Criteria: Input text is consistent with message text
+
+### Phase 2: Simple Navigation Enhancement
+- [ ] **Task 2.1**: Add scroll-to-top button (only when scrolled down)
+  - Position next to send button
+  - Simple upward arrow icon (using existing icon system)
+  - Only show when user has scrolled down from top
+  - Success Criteria: Button appears only when needed
+
+- [ ] **Task 2.2**: Implement scroll-to-top functionality
+  - Smooth scroll to first message (patient info)
+  - Hide button when at top
+  - Success Criteria: Button works reliably and provides good UX
+
+### Phase 3: Simple Layout Optimizations
+- [ ] **Task 3.1**: Optimize message bubble sizing for larger screens
+  - Keep current 75% max-width for mobile/tablet
+  - Increase to 80% for laptop screens (1024px+)
+  - Increase to 85% for large monitors (1440px+)
+  - Success Criteria: Messages use screen space more efficiently on larger displays
+
+- [ ] **Task 3.2**: Adjust spacing for larger screens
+  - Keep current 16px gap for mobile/tablet
+  - Increase to 20px for laptop screens (1024px+)
+  - Increase to 24px for large monitors (1440px+)
+  - Success Criteria: Layout feels balanced on larger screens
+
+### Phase 4: Testing and Validation
+- [ ] **Task 4.1**: Test on target devices
+  - Laptop screens (1024px-1440px)
+  - Large monitors (1440px+)
+  - Verify mobile/tablet still works correctly
+  - Success Criteria: All improvements work correctly on target devices
+
+- [ ] **Task 4.2**: Verify no regressions
+  - Test existing functionality still works
+  - Verify no layout breaks or visual issues
+  - Success Criteria: No new issues introduced
+
+## Project Status Board
+- [x] **Phase 1**: Simple Typography Improvements ✅ COMPLETE
+  - [x] Task 1.1: Increase font sizes for larger screens
+  - [x] Task 1.2: Improve line spacing in message bubbles
+  - [x] Task 1.3: Update input field to match
+- [x] **Phase 2**: Simple Navigation Enhancement ✅ COMPLETE
+  - [x] Task 2.1: Scroll-to-top button (conditional display)
+  - [x] Task 2.2: Scroll-to-top functionality
+- [ ] **Phase 3**: Simple Layout Optimizations
+  - [ ] Task 3.1: Optimize message bubble sizing
+  - [ ] Task 3.2: Adjust spacing for larger screens
+- [ ] **Phase 4**: Testing and Validation
+  - [ ] Task 4.1: Test on target devices
+  - [ ] Task 4.2: Verify no regressions
+
+## Current Status / Progress Tracking
+- **Status**: EXECUTOR MODE ACTIVE - Phase 1 & 2 COMPLETE ✅
+- **Priority**: High - Directly impacts user experience on laptops/monitors
+- **Estimated Timeline**: 1-2 days for simple improvements
+- **Scope**: Minimal changes, no color changes, no complex features
+- **Next**: Phase 3 - Simple Layout Optimizations
+
+## Executor's Feedback or Assistance Requests
+- **EXECUTOR MODE**: Phase 1 & 2 COMPLETE ✅
+- **Implementation Summary**:
+  - ✅ **Responsive Typography**: Added CSS media queries for larger screens (1024px+: 20px, 1440px+: 22px)
+  - ✅ **Line Spacing**: Increased line-height to 1.5 and padding to 16px for better readability
+  - ✅ **Scroll-to-Top Button**: Added conditional button that appears only when scrolled down >100px
+  - ✅ **Smooth Scrolling**: Implemented smooth scroll animation to top of chat
+  - ✅ **Build Success**: All changes compile without errors
+- **Technical Details**:
+  - Used CSS media queries with !important to override inline styles
+  - Added CSS classes to all relevant elements (title, messages, input, buttons)
+  - Scroll-to-top button uses simple "↑" arrow symbol
+  - Button styling matches existing theme (black background, orange border)
+  - Scroll tracking uses ref and event listeners with cleanup
+- **Files Modified**: `src/components/Chat.tsx`
+- **Ready for Phase 3**: Layout optimizations for message bubble sizing and spacing
