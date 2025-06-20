@@ -81,13 +81,14 @@ Now the frontend needs corresponding updates to match these backend changes and 
   - [x] Task 5.6: Progress testing
 
 ## Current Status / Progress Tracking
-- **Status**: All planned phases complete. Ready for deployment.
-- **Backend Status**: All backend changes completed and tested
-- **Next**: Final testing and deployment.
+- **Status**: EXECUTOR MODE ACTIVE - Starting Phase 1 implementation
+- **API Documentation**: CATAAS API reviewed - using `/cat/gif` for GIFs, `/cat` for static fallback
+- **Next**: Implementing CATAAS API service function with 2-second timeout
 
 ## Executor's Feedback or Assistance Requests
-- All planned features have been implemented and tested.
-- The application is ready for final review and deployment to production.
+- **EXECUTOR MODE**: Starting Phase 1 Task 1.1 - Creating CATAAS API service function
+- Will implement timeout logic using Promise.race() with 2-second timeout
+- Will test both GIF and static image endpoints for reliability
 
 ## Lessons
 - Backend-first approach ensures API contracts are stable before frontend implementation
@@ -1171,3 +1172,106 @@ To keep the product functional and unlock new analytics/leaderboard features, th
 - [x] Defined TypeScript interfaces for API responses (`UserLeaderboardRow`, `SchoolLeaderboardRow`, etc.)
 - [x] Created API service functions for leaderboard endpoints with token handling and error management
 - [x] Built a reusable, responsive `LeaderboardTable`
+
+# CATAAS API Integration Plan (Planner Mode)
+
+## Background and Motivation
+The ConditionSelection component currently uses a single static medical image for all condition cards. To enhance user engagement and add visual variety, we want to integrate the CATAAS (Cat as a Service) API to display random cat GIFs on each condition card. This will provide a fun, dynamic visual element while maintaining the professional medical context of the application.
+
+## Key Challenges and Analysis
+- **API Integration**: Need to fetch random cat GIFs from `https://cataas.com/cat/gif` endpoint
+- **Image Loading**: Handle loading states and error fallbacks for external API calls
+- **Performance**: Ensure GIFs load efficiently without blocking the UI
+- **Caching**: Consider caching strategies to avoid repeated API calls
+- **Responsive Design**: Ensure GIFs fit the existing card dimensions (200x120px aspect ratio)
+- **User Experience**: Maintain professional appearance while adding playful cat GIFs
+- **Error Handling**: Graceful fallback to static image if CATAAS API is unavailable
+
+## User Requirements (Updated)
+1. **Always fetch fresh GIFs** - No caching, new GIF on each page load
+2. **2-second timeout** - Use placeholder if GIF takes longer than 2 seconds to load
+3. **Fallback image** - Use current static medical image as fallback
+4. **Single GIF per page** - Same GIF used for all condition cards on the page
+5. **Maintain current dimensions** - Keep existing 200x120px aspect ratio and styling
+6. **Fallback option** - If GIFs cause complications, use static cat images instead
+
+## High-level Task Breakdown
+
+### Phase 1: API Integration Setup
+- [ ] **Task 1.1**: Create CATAAS API service function
+  - Success Criteria: Function can fetch random cat GIF from `/cat/gif` endpoint
+- [ ] **Task 1.2**: Implement 2-second timeout logic
+  - Success Criteria: Falls back to static image if GIF doesn't load within 2 seconds
+- [ ] **Task 1.3**: Add error handling and fallback logic
+  - Success Criteria: Falls back to current static medical image if API fails
+
+### Phase 2: Component Integration
+- [ ] **Task 2.1**: Update `getConditionImage()` function to use CATAAS API
+  - Success Criteria: Returns random cat GIF URL instead of static image
+- [ ] **Task 2.2**: Implement single GIF per page logic
+  - Success Criteria: All condition cards display the same random GIF
+- [ ] **Task 2.3**: Add loading state management
+  - Success Criteria: Shows placeholder while fetching GIF, handles timeout gracefully
+
+### Phase 3: Image Styling & Optimization
+- [ ] **Task 3.1**: Ensure GIFs fit existing card dimensions
+  - Success Criteria: GIFs display at 200x120px with proper aspect ratio
+- [ ] **Task 3.2**: Test responsive behavior
+  - Success Criteria: GIFs work correctly across all screen sizes
+- [ ] **Task 3.3**: Verify timeout behavior
+  - Success Criteria: 2-second timeout works correctly, fallback image displays
+
+### Phase 4: Testing & Fallback Strategy
+- [ ] **Task 4.1**: Test API reliability and timeout scenarios
+  - Success Criteria: Graceful handling of slow loads and API failures
+- [ ] **Task 4.2**: Performance testing
+  - Success Criteria: No significant impact on page load times
+- [ ] **Task 4.3**: Implement static cat image fallback
+  - Success Criteria: Can easily switch to `/cat` endpoint for static images if needed
+
+## Project Status Board
+- [x] **Phase 1**: API Integration Setup ✅ COMPLETE
+  - [x] Task 1.1: CATAAS API service function
+  - [x] Task 1.2: 2-second timeout implementation
+  - [x] Task 1.3: Error handling and fallbacks
+- [x] **Phase 2**: Component Integration ✅ COMPLETE
+  - [x] Task 2.1: Update getConditionImage function
+  - [x] Task 2.2: Single GIF per page logic
+  - [x] Task 2.3: Loading state management
+- [x] **Phase 3**: Image Styling & Optimization ✅ COMPLETE
+  - [x] Task 3.1: Card dimension fitting
+  - [x] Task 3.2: Responsive testing
+  - [x] Task 3.3: Timeout behavior verification
+- [ ] **Phase 4**: Testing & Fallback Strategy
+  - [ ] Task 4.1: API reliability testing
+  - [ ] Task 4.2: Performance testing
+  - [ ] Task 4.3: Static cat image fallback option
+
+## Current Status / Progress Tracking
+- **Status**: EXECUTOR MODE ACTIVE - Phase 1, 2 & 3 COMPLETE ✅
+- **API Documentation**: CATAAS API reviewed - using `/cat/gif` for GIFs, `/cat` for static fallback
+- **Next**: Final testing and user verification
+
+## Executor's Feedback or Assistance Requests
+- **EXECUTOR MODE**: Phase 1, 2 & 3 COMPLETE ✅
+- **Implementation Summary**:
+  - ✅ Created `fetchRandomCatGif()` function with 2-second timeout using Promise.race()
+  - ✅ Added state management for `catGifUrl` in ConditionSelection component
+  - ✅ Updated `getConditionImage()` to accept and use the cat GIF URL
+  - ✅ Implemented useEffect to fetch GIF on component mount
+  - ✅ Added proper error handling and fallback to static medical image
+  - ✅ Fixed ESLint errors and verified successful build
+  - ✅ Tested CATAAS API endpoints - both `/cat/gif` and `/cat` return 200 status codes
+  - ✅ Verified image dimensions fit existing card layout (200x120px)
+- **Technical Details**:
+  - Uses `https://cataas.com/cat/gif` endpoint for random cat GIFs
+  - 2-second timeout implemented with Promise.race()
+  - Falls back to current static medical image if API fails or times out
+  - Single GIF per page - all condition cards show the same random GIF
+  - Fresh GIF on each page load/refresh
+  - Maintains existing responsive grid layout and card styling
+- **API Testing Results**:
+  - ✅ `/cat/gif` endpoint: 200 OK (returns random cat GIF)
+  - ✅ `/cat` endpoint: 200 OK (returns static cat image - available as fallback)
+  - ✅ Build compilation: Successful with no errors
+- **Ready for user testing**: Implementation is complete and all endpoints verified

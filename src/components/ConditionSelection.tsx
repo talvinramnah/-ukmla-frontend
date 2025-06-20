@@ -19,10 +19,41 @@ interface ConditionData {
   total_passes?: number;
 }
 
+// CATAAS API service function with 2-second timeout
+const fetchRandomCatGif = async (): Promise<string> => {
+  const TIMEOUT_MS = 2000; // 2 seconds
+  const CATAAS_GIF_URL = 'https://cataas.com/cat/gif';
+  const FALLBACK_IMAGE = "https://live.staticflickr.com/34/70365463_886a12b513_o.jpg";
+
+  try {
+    // Create a promise that rejects after timeout
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout')), TIMEOUT_MS);
+    });
+
+    // Create the fetch promise
+    const fetchPromise = fetch(CATAAS_GIF_URL)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return CATAAS_GIF_URL; // Return the URL since CATAAS returns the image directly
+      });
+
+    // Race between fetch and timeout
+    const result = await Promise.race([fetchPromise, timeoutPromise]);
+    console.log('🐱 CATAAS GIF loaded successfully');
+    return result;
+  } catch (error) {
+    console.warn('⚠️ CATAAS GIF failed or timed out, using fallback:', error);
+    return FALLBACK_IMAGE;
+  }
+};
+
 // Image configuration - structured for easy expansion to multiple images
 const CONDITION_IMAGES = {
-  // MVP: Single placeholder image for all conditions
-  default: "https://live.staticflickr.com/34/70365463_886a12b513_o.jpg",
+  // Fallback: Static medical image
+  fallback: "https://live.staticflickr.com/34/70365463_886a12b513_o.jpg",
   
   // Future: Condition-specific or randomized images
   // Can be expanded to:
@@ -30,18 +61,10 @@ const CONDITION_IMAGES = {
   // specific: { "Acute Coronary Syndrome": "cardio.jpg", ... }
 };
 
-// Helper function to get image for a condition (easily extensible)
-const getConditionImage = (): string => {
-  // MVP: Return default image
-  return CONDITION_IMAGES.default;
-  
-  // Future implementation options:
-  // Option 1: Random from pool
-  // const randomIndex = Math.abs(condition.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % CONDITION_IMAGES.randomPool.length;
-  // return CONDITION_IMAGES.randomPool[randomIndex];
-  
-  // Option 2: Condition-specific with fallback
-  // return CONDITION_IMAGES.specific[condition] || CONDITION_IMAGES.default;
+// Helper function to get image for a condition (now uses CATAAS API)
+const getConditionImage = (catGifUrl: string | null): string => {
+  // Return cat GIF if available, otherwise fallback
+  return catGifUrl || CONDITION_IMAGES.fallback;
 };
 
 export default function ConditionSelection({ ward }: ConditionSelectionProps) {
@@ -52,7 +75,23 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
   const [error, setError] = useState<string | null>(null);
   const [hoveredCondition, setHoveredCondition] = useState<string | null>(null);
   const [caseFocus, setCaseFocus] = useState<"investigation" | "management" | "both">("both");
+  const [catGifUrl, setCatGifUrl] = useState<string | null>(null);
   const router = useRouter();
+
+  // Fetch cat GIF on component mount
+  useEffect(() => {
+    const loadCatGif = async () => {
+      try {
+        const gifUrl = await fetchRandomCatGif();
+        setCatGifUrl(gifUrl);
+      } catch (error) {
+        console.error('Failed to load cat GIF:', error);
+        setCatGifUrl(null); // Will use fallback
+      }
+    };
+
+    loadCatGif();
+  }, []); // Empty dependency array - only run once on mount
 
   useEffect(() => {
     if (!accessToken || !refreshToken || !ward) return;
@@ -323,7 +362,7 @@ export default function ConditionSelection({ ward }: ConditionSelectionProps) {
       <div style={styles.gridContainer} className="condition-grid-responsive">
         {conditions.map((condition) => {
           const stats = conditionStats[condition] || { total_cases: 0, total_passes: 0, pass_rate: 0 };
-          const imageSrc = getConditionImage();
+          const imageSrc = getConditionImage(catGifUrl);
           
           return (
             <div
