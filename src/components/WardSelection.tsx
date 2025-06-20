@@ -187,7 +187,7 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
             boxShadow: "0 0 12px rgba(0,0,0,0.5)",
             textAlign: "center" as const,
             cursor: "pointer",
-            transition: "transform 0.2s, box-shadow 0.2s, border 0.2s",
+            transition: "transform 0.2s, box-shadow 0.2s",
             display: "flex",
             flexDirection: "column" as const,
             alignItems: "center",
@@ -346,8 +346,8 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                     Authorization: `Bearer ${accessToken}`,
                 },
                 body: JSON.stringify({
-                    ward: ward,
-                    completed: completed
+                    ward_name: ward,
+                    is_completed: completed
                 }),
                 credentials: "include",
             });
@@ -408,7 +408,6 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                                         style={{
                                             ...styles.card,
                                             ...(hoveredWard === ward ? styles.cardHover : {}),
-                                            ...(completedWards.has(ward) ? styles.cardCompleted : {}),
                                         }}
                                         onClick={() => onWardClick(ward)}
                                         onMouseEnter={() => setHoveredWard(ward)}
@@ -421,17 +420,6 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                                             ✅ {stats.total_cases} cases<br />
                                             ✅ Pass Rate: {stats.pass_rate.toFixed(1)}%
                                         </div>
-                                        <div 
-                                            style={{ marginTop: '12px' }}
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <WardProgressCheckbox
-                                                ward={ward}
-                                                isCompleted={completedWards.has(ward)}
-                                                onToggle={handleWardProgressToggle}
-                                                disabled={wardProgressLoading}
-                                            />
-                                        </div>
                                     </div>
                                 );
                             })}
@@ -440,6 +428,14 @@ export default function WardSelection({ accessToken, refreshToken, onSelectCondi
                 ) : (
                     <div style={styles.centeredConditionScreen} className="vcr-font">
                         <div style={styles.conditionTitle}>Select a Condition in {WARD_DISPLAY_NAMES[selectedWard] || selectedWard}</div>
+                        <div style={{ marginBottom: '24px' }}>
+                            <WardProgressCheckbox
+                                ward={selectedWard!}
+                                isCompleted={completedWards.has(selectedWard!)}
+                                onToggle={handleWardProgressToggle}
+                                disabled={wardProgressLoading}
+                            />
+                        </div>
                         <div style={styles.conditionList}>
                             {wardsData[selectedWard]?.sort((a: string, b: string) => a.localeCompare(b)).map((condition: string) => (
                                 <button
