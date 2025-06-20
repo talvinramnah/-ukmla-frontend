@@ -556,8 +556,8 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     }, [messages, caseCompletionData, hasSaved, threadId, accessToken, refreshToken]);
 
     return (
-        <div className="pixel-font" ref={chatContainerRef} style={{ background: "#180161", minHeight: "100vh", padding: 32, color: "#ffd5a6", fontFamily: "VT323", overflowY: "auto" }}>
-            <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div className="pixel-font" style={{ background: "#180161", height: "100vh", padding: 32, color: "#ffd5a6", fontFamily: "VT323", display: "flex", flexDirection: "column" }}>
+            <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", height: "100%" }}>
                 <h2 className="chat-title" style={{ fontSize: "24px", marginBottom: "20px", textAlign: leftAlignTitle ? 'left' : 'center' }}>
                     {decodeURIComponent(condition)}
                 </h2>
@@ -567,7 +567,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                   </span>
                 </div>
                 
-                <div style={{ width: "100%", maxWidth: "800px" }}>
+                <div ref={chatContainerRef} style={{ width: "100%", maxWidth: "800px", flex: 1, overflowY: "auto", paddingBottom: "20px" }}>
                     {messages
                         .filter((msg: Message) => {
                             if (caseCompleted) {
@@ -728,13 +728,20 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         )}
                     </div>
                 )}
-                
+            </div>
+            
+            {/* Fixed bottom section for input and actions */}
+            <div style={{ 
+                width: "100%", 
+                maxWidth: "800px", 
+                margin: "0 auto",
+                padding: "0 32px 32px 32px"
+            }}>
                 {!caseCompleted && assistantMessageComplete && (
                     <div style={{ 
                         display: "flex", 
                         gap: "12px", 
-                        width: "100%", 
-                        maxWidth: "800px" 
+                        width: "100%"
                     }}>
                         <input
                             type="text"
