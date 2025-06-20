@@ -454,10 +454,13 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     };
 
     const handleScrollToTop = () => {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
+        const container = document.getElementById('main-scroll-container');
+        if (container) {
+            container.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
     };
 
     useEffect(() => {
@@ -468,11 +471,20 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
 
     // Add scroll event listener
     useEffect(() => {
+        const container = document.getElementById('main-scroll-container');
         const handleScroll = () => {
-            setShowScrollToTop(window.scrollY > 100);
+            if (container) {
+                setShowScrollToTop(container.scrollTop > 100);
+            }
         };
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
+        if (container) {
+            container.addEventListener('scroll', handleScroll);
+        }
+        return () => {
+            if (container) {
+                container.removeEventListener('scroll', handleScroll);
+            }
+        };
     }, []);
 
     // Replace the useEffect that only runs when caseCompleted is true

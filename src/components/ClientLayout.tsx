@@ -34,7 +34,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         {/* Global TopBar */}
         {accessToken && refreshToken && <TopBar />}
         {/* Scrollable Page Content */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div id="main-scroll-container" style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </div>
       </div>
