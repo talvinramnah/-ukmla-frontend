@@ -603,7 +603,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                             color: "#ffd5a6",
                             maxWidth: "75%",
                             whiteSpace: "pre-line",
-                            lineHeight: "1.5"
+                            lineHeight: "1"
                         };
 
                         return (
