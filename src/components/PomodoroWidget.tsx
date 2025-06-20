@@ -113,23 +113,43 @@ export default function PomodoroWidget() {
     color: 'var(--color-text)',
     position: 'relative',
     overflow: 'hidden',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+  };
+
+  const headerStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    padding: '16px 20px 12px 20px',
+    borderBottom: '1px solid var(--color-border)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    textAlign: 'left',
+  };
+
+  const titleStyle: React.CSSProperties = {
+    fontSize: '22px',
+    fontWeight: 'bold',
+    color: 'var(--color-accent)',
+    margin: 0,
+    fontFamily: 'VT323, monospace',
   };
 
   const timerDisplayStyle: React.CSSProperties = {
-    fontSize: '32px',
+    fontSize: '48px',
     fontWeight: 'bold',
     color: state.timeLeft <= 300 ? '#ff6b6b' : 'var(--color-text)', // Red when <5 min
-    marginBottom: '12px',
+    marginBottom: '18px',
     textAlign: 'center',
     fontFamily: 'VT323, monospace',
   };
 
   const progressBarStyle: React.CSSProperties = {
     width: '100%',
-    height: '6px',
+    height: '8px',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: '3px',
-    marginBottom: '16px',
+    borderRadius: '4px',
+    marginBottom: '24px',
     overflow: 'hidden',
   };
 
@@ -149,14 +169,14 @@ export default function PomodoroWidget() {
   };
 
   const buttonStyle: React.CSSProperties = {
-    padding: '8px 16px',
+    padding: '10px 20px',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '8px',
     fontFamily: 'VT323, monospace',
-    fontSize: '16px',
+    fontSize: '20px',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    minWidth: '60px',
+    minWidth: '80px',
   };
 
   const startButtonStyle: React.CSSProperties = {
@@ -169,26 +189,29 @@ export default function PomodoroWidget() {
     ...buttonStyle,
     backgroundColor: state.isPaused ? 'var(--color-accent-hover)' : 'var(--color-card)',
     color: 'var(--color-text)',
-    border: '1px solid var(--color-accent)',
+    border: '2px solid var(--color-accent)',
   };
 
   const resetButtonStyle: React.CSSProperties = {
     ...buttonStyle,
     backgroundColor: 'transparent',
     color: 'var(--color-text)',
-    border: '1px solid var(--color-border)',
+    border: '2px solid var(--color-border)',
   };
 
   const statusTextStyle: React.CSSProperties = {
-    fontSize: '14px',
+    fontSize: '18px',
     color: 'var(--color-accent)',
-    marginTop: '8px',
+    marginTop: '12px',
     textAlign: 'center',
     fontFamily: 'VT323, monospace',
   };
 
   return (
     <div style={containerStyle}>
+      <div style={headerStyle}>
+        <h3 style={titleStyle}>⏱️ Pomodoro Timer</h3>
+      </div>
       <div style={timerDisplayStyle}>
         {formatTime(state.timeLeft)}
       </div>

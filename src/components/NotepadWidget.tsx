@@ -78,6 +78,7 @@ export default function NotepadWidget() {
     color: 'var(--color-text)',
     position: 'relative',
     overflow: 'hidden',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
   };
 
   const headerStyle: React.CSSProperties = {
@@ -87,10 +88,10 @@ export default function NotepadWidget() {
   };
 
   const titleStyle: React.CSSProperties = {
-    fontSize: '18px',
+    fontSize: '22px',
     fontWeight: 'bold',
     color: 'var(--color-accent)',
-    margin: '0 0 8px 0',
+    margin: '0 0 12px 0',
     fontFamily: 'VT323, monospace',
   };
 
@@ -102,23 +103,23 @@ export default function NotepadWidget() {
 
   const inputStyle: React.CSSProperties = {
     flex: 1,
-    padding: '8px 12px',
+    padding: '10px 14px',
     border: '1px solid var(--color-border)',
-    borderRadius: '6px',
+    borderRadius: '8px',
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     color: 'var(--color-text)',
     fontFamily: 'VT323, monospace',
-    fontSize: '14px',
+    fontSize: '18px',
   };
 
   const addButtonStyle: React.CSSProperties = {
-    padding: '8px 12px',
+    padding: '10px 16px',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '8px',
     backgroundColor: 'var(--color-accent)',
     color: 'white',
     fontFamily: 'VT323, monospace',
-    fontSize: '14px',
+    fontSize: '18px',
     cursor: 'pointer',
     transition: 'background-color 0.2s ease',
     whiteSpace: 'nowrap',
@@ -126,31 +127,31 @@ export default function NotepadWidget() {
 
   const todoListStyle: React.CSSProperties = {
     flex: 1,
-    padding: '12px 20px',
+    padding: '16px 24px',
     overflowY: 'auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: '12px',
   };
 
   const todoItemStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    padding: '8px 0',
+    gap: '12px',
+    padding: '10px 0',
     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
   };
 
   const checkboxStyle: React.CSSProperties = {
-    width: '16px',
-    height: '16px',
+    width: '20px',
+    height: '20px',
     cursor: 'pointer',
     accentColor: 'var(--color-accent)',
   };
 
   const todoTextStyle = (completed: boolean): React.CSSProperties => ({
     flex: 1,
-    fontSize: '14px',
+    fontSize: '18px',
     textDecoration: completed ? 'line-through' : 'none',
     color: completed ? 'rgba(255, 255, 255, 0.5)' : 'var(--color-text)',
     fontFamily: 'VT323, monospace',
@@ -158,13 +159,13 @@ export default function NotepadWidget() {
   });
 
   const deleteButtonStyle: React.CSSProperties = {
-    padding: '4px 8px',
+    padding: '6px 10px',
     border: 'none',
-    borderRadius: '4px',
+    borderRadius: '6px',
     backgroundColor: 'rgba(255, 107, 107, 0.2)',
     color: '#ff6b6b',
     fontFamily: 'VT323, monospace',
-    fontSize: '12px',
+    fontSize: '16px',
     cursor: 'pointer',
     transition: 'background-color 0.2s ease',
   };
@@ -172,9 +173,9 @@ export default function NotepadWidget() {
   const emptyStateStyle: React.CSSProperties = {
     textAlign: 'center',
     color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: '14px',
+    fontSize: '18px',
     fontStyle: 'italic',
-    marginTop: '20px',
+    marginTop: '24px',
   };
 
   return (
