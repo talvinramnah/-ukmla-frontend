@@ -105,8 +105,6 @@ export default function PomodoroWidget() {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: '16px',
     backgroundColor: 'var(--color-card)',
     borderRadius: '12px 12px 24px 24px',
     fontFamily: 'VT323, monospace',
@@ -117,14 +115,23 @@ export default function PomodoroWidget() {
   };
 
   const headerStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    width: '100%',
     padding: '16px 20px 12px 20px',
     borderBottom: '1px solid var(--color-border)',
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     textAlign: 'left',
+    boxSizing: 'border-box',
+  };
+
+  const contentWrapperStyle: React.CSSProperties = {
+    flex: 1,
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '16px',
+    boxSizing: 'border-box',
   };
 
   const titleStyle: React.CSSProperties = {
@@ -133,6 +140,9 @@ export default function PomodoroWidget() {
     color: 'var(--color-accent)',
     margin: 0,
     fontFamily: 'VT323, monospace',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
   };
 
   const timerDisplayStyle: React.CSSProperties = {
@@ -210,45 +220,54 @@ export default function PomodoroWidget() {
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
-        <h3 style={titleStyle}>⏱️ Pomodoro Timer</h3>
+        <h3 style={titleStyle}>
+          <span>⏱️</span>
+          <span>Pomodoro Timer</span>
+        </h3>
       </div>
-      <div style={timerDisplayStyle}>
-        {formatTime(state.timeLeft)}
-      </div>
-      
-      <div style={progressBarStyle}>
-        <div style={progressFillStyle} />
-      </div>
-      
-      <div style={buttonContainerStyle}>
-        {!state.isRunning && !state.isPaused && (
-          <button onClick={startTimer} style={startButtonStyle}>
-            Start
+      <div style={contentWrapperStyle}>
+        <div style={timerDisplayStyle}>{formatTime(state.timeLeft)}</div>
+
+        <div style={progressBarStyle}>
+          <div style={progressFillStyle} />
+        </div>
+
+        <div style={buttonContainerStyle}>
+          {!state.isRunning && !state.isPaused && (
+            <button onClick={startTimer} style={startButtonStyle}>
+              Start
+            </button>
+          )}
+
+          {state.isRunning && (
+            <button onClick={pauseTimer} style={pauseButtonStyle}>
+              Pause
+            </button>
+          )}
+
+          {state.isPaused && (
+            <button onClick={startTimer} style={startButtonStyle}>
+              Resume
+            </button>
+          )}
+
+          <button onClick={resetTimer} style={resetButtonStyle}>
+            Reset
           </button>
-        )}
-        
-        {state.isRunning && (
-          <button onClick={pauseTimer} style={pauseButtonStyle}>
-            Pause
-          </button>
-        )}
-        
-        {state.isPaused && (
-          <button onClick={startTimer} style={startButtonStyle}>
-            Resume
-          </button>
-        )}
-        
-        <button onClick={resetTimer} style={resetButtonStyle}>
-          Reset
-        </button>
-      </div>
-      
-      <div style={statusTextStyle}>
-        {state.isRunning && 'Focus time! 🎯'}
-        {state.isPaused && 'Paused ⏸️'}
-        {!state.isRunning && !state.isPaused && state.timeLeft === DEFAULT_TIME && 'Ready to start 🚀'}
-        {!state.isRunning && !state.isPaused && state.timeLeft < DEFAULT_TIME && 'Session complete! ✅'}
+        </div>
+
+        <div style={statusTextStyle}>
+          {state.isRunning && 'Focus time! 🎯'}
+          {state.isPaused && 'Paused ⏸️'}
+          {!state.isRunning &&
+            !state.isPaused &&
+            state.timeLeft === DEFAULT_TIME &&
+            'Ready to start 🚀'}
+          {!state.isRunning &&
+            !state.isPaused &&
+            state.timeLeft < DEFAULT_TIME &&
+            'Session complete! ✅'}
+        </div>
       </div>
     </div>
   );
