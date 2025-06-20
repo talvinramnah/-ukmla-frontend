@@ -143,7 +143,6 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     const [toastMsg, setToastMsg] = useState<string | null>(null);
     const [hasSaved, setHasSaved] = useState(false);
     const [showScrollToTop, setShowScrollToTop] = useState(false);
-    const chatContainerRef = useRef<HTMLDivElement>(null);
 
     const doctorImg = "https://i.imgur.com/NYfCYKZ.png";
     const studentImg = "https://i.imgur.com/D7DZ2Wv.png";
@@ -455,19 +454,10 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     };
 
     const handleScrollToTop = () => {
-        if (chatContainerRef.current) {
-            chatContainerRef.current.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        }
-    };
-
-    const handleScroll = () => {
-        if (chatContainerRef.current) {
-            const scrollTop = chatContainerRef.current.scrollTop;
-            setShowScrollToTop(scrollTop > 100); // Show button when scrolled down more than 100px
-        }
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
     };
 
     useEffect(() => {
@@ -478,11 +468,11 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
 
     // Add scroll event listener
     useEffect(() => {
-        const container = chatContainerRef.current;
-        if (container) {
-            container.addEventListener('scroll', handleScroll);
-            return () => container.removeEventListener('scroll', handleScroll);
-        }
+        const handleScroll = () => {
+            setShowScrollToTop(window.scrollY > 100);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
     // Replace the useEffect that only runs when caseCompleted is true
@@ -556,8 +546,8 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
     }, [messages, caseCompletionData, hasSaved, threadId, accessToken, refreshToken]);
 
     return (
-        <div className="pixel-font" style={{ background: "#180161", height: "100vh", padding: 32, color: "#ffd5a6", fontFamily: "VT323", display: "flex", flexDirection: "column" }}>
-            <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", height: "100%" }}>
+        <div className="pixel-font" style={{ background: "#180161", minHeight: "100vh", padding: 32, color: "#ffd5a6", fontFamily: "VT323" }}>
+            <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
                 <h2 className="chat-title" style={{ fontSize: "24px", marginBottom: "20px", textAlign: leftAlignTitle ? 'left' : 'center' }}>
                     {decodeURIComponent(condition)}
                 </h2>
@@ -567,7 +557,7 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                   </span>
                 </div>
                 
-                <div ref={chatContainerRef} style={{ width: "100%", maxWidth: "800px", flex: 1, overflowY: "auto", paddingBottom: "20px" }}>
+                <div style={{ width: "100%", maxWidth: "800px" }}>
                     {messages
                         .filter((msg: Message) => {
                             if (caseCompleted) {
@@ -728,20 +718,13 @@ export default function Chat({ condition, accessToken, refreshToken, leftAlignTi
                         )}
                     </div>
                 )}
-            </div>
-            
-            {/* Fixed bottom section for input and actions */}
-            <div style={{ 
-                width: "100%", 
-                maxWidth: "800px", 
-                margin: "0 auto",
-                padding: "0 32px 32px 32px"
-            }}>
+                
                 {!caseCompleted && assistantMessageComplete && (
                     <div style={{ 
                         display: "flex", 
                         gap: "12px", 
-                        width: "100%"
+                        width: "100%", 
+                        maxWidth: "800px" 
                     }}>
                         <input
                             type="text"
