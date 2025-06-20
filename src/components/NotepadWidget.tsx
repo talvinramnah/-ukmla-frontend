@@ -72,7 +72,7 @@ export default function NotepadWidget() {
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: 'var(--color-card)',
+    backgroundColor: 'var(--color-bg)',
     borderRadius: '24px 24px 12px 12px',
     fontFamily: 'VT323, monospace',
     color: 'var(--color-text)',
@@ -82,6 +82,7 @@ export default function NotepadWidget() {
   };
 
   const headerStyle: React.CSSProperties = {
+    width: '100%',
     padding: '16px 20px 12px 20px',
     borderBottom: '1px solid var(--color-border)',
     backgroundColor: 'rgba(0, 0, 0, 0.2)',

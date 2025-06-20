@@ -105,7 +105,7 @@ export default function PomodoroWidget() {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    backgroundColor: 'var(--color-card)',
+    backgroundColor: 'var(--color-bg)',
     borderRadius: '12px 12px 24px 24px',
     fontFamily: 'VT323, monospace',
     color: 'var(--color-text)',
@@ -197,7 +197,7 @@ export default function PomodoroWidget() {
 
   const pauseButtonStyle: React.CSSProperties = {
     ...buttonStyle,
-    backgroundColor: state.isPaused ? 'var(--color-accent-hover)' : 'var(--color-card)',
+    backgroundColor: state.isPaused ? 'var(--color-accent-hover)' : 'var(--color-bg)',
     color: 'var(--color-text)',
     border: '2px solid var(--color-accent)',
   };
