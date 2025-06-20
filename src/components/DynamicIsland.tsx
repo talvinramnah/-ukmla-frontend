@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
-
-const TOP_IMAGE = 'https://live.staticflickr.com/65535/54569187184_6a92a54f10_z.jpg';
-const BOTTOM_IMAGE = 'https://live.staticflickr.com/65535/54569187179_4e46190c34_n.jpg';
+import NotepadWidget from './NotepadWidget';
+import PomodoroWidget from './PomodoroWidget';
 
 export default function DynamicIsland() {
   const [isDesktop, setIsDesktop] = useState(true);
@@ -50,41 +48,25 @@ export default function DynamicIsland() {
         <div
           style={{
             flex: 7,
-            background: 'orange',
-            borderRadius: '24px 24px 12px 12px',
             marginBottom: 8,
             overflow: 'hidden',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: 'stretch',
+            justifyContent: 'stretch',
           }}
         >
-          <Image
-            src={TOP_IMAGE}
-            alt="Dynamic Island Top Content"
-            width={400}
-            height={300}
-            style={{ width: '100%', height: 'auto', borderRadius: 16, objectFit: 'cover' }}
-          />
+          <NotepadWidget />
         </div>
         <div
           style={{
             flex: 3,
-            background: 'orange',
-            borderRadius: '12px 12px 24px 24px',
             overflow: 'hidden',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: 'stretch',
+            justifyContent: 'stretch',
           }}
         >
-          <Image
-            src={BOTTOM_IMAGE}
-            alt="Dynamic Island Bottom Content"
-            width={400}
-            height={200}
-            style={{ width: '100%', height: 'auto', borderRadius: 16, objectFit: 'cover' }}
-          />
+          <PomodoroWidget />
         </div>
       </aside>
     </div>

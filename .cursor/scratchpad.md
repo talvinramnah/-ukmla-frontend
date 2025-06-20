@@ -1275,3 +1275,116 @@ The ConditionSelection component currently uses a single static medical image fo
   - ✅ `/cat` endpoint: 200 OK (returns static cat image - available as fallback)
   - ✅ Build compilation: Successful with no errors
 - **Ready for user testing**: Implementation is complete and all endpoints verified
+
+# Dynamic Island Widget Update Plan (Planner Mode)
+
+## Background and Motivation
+The current Dynamic Island displays two static images (70/30 split) and only appears on desktop (≥1024px). The user wants to replace these images with functional widgets:
+1. **Top Section (70%)**: Notepad widget with to-do list functionality and checkboxes
+2. **Bottom Section (30%)**: Pomodoro timer widget set to default 25 minutes
+
+The widgets should be responsive, fit any screen size, and persist data for the current session only (no permanent storage needed).
+
+## Key Challenges and Analysis
+- **Widget Selection**: Need to find lightweight, responsive third-party widgets that work well in a 320px width container
+- **Responsive Design**: Widgets must adapt to the existing 70/30 split and maintain usability at small sizes
+- **Session Storage**: Implement temporary storage that persists during the session but doesn't save permanently
+- **Performance**: Ensure widgets don't impact app performance or cause layout issues
+- **Integration**: Maintain existing responsive logic (desktop-only display) and styling consistency
+- **Dependencies**: Minimize additional package dependencies to avoid build issues
+
+## Third-Party Widget Research
+
+### Notepad/Todo Widget Options:
+1. **react-todo-app** - Lightweight, customizable, good for small containers
+2. **@dabeng/react-todo** - Simple, responsive, minimal dependencies
+3. **Custom implementation** - Using React state with localStorage for session persistence
+
+### Pomodoro Timer Widget Options:
+1. **react-pomodoro** - Popular, customizable timer with start/pause/reset
+2. **@use-pomodoro/react** - Hook-based, lightweight, good for small containers
+3. **Custom implementation** - Simple timer with React state and useEffect
+
+### Recommended Approach:
+**Custom Implementation** - Build lightweight widgets using React state and sessionStorage to avoid additional dependencies and ensure perfect integration with existing styling.
+
+## High-level Task Breakdown
+
+### Phase 1: Widget Component Development
+- [ ] **Task 1.1**: Create NotepadWidget component
+  - Success Criteria: Displays editable to-do list with checkboxes, adds/removes items, persists in sessionStorage
+- [ ] **Task 1.2**: Create PomodoroWidget component  
+  - Success Criteria: 25-minute timer with start/pause/reset, visual countdown, session persistence
+- [ ] **Task 1.3**: Implement session storage utilities
+  - Success Criteria: Data persists during session, clears on page refresh/close
+
+### Phase 2: Dynamic Island Integration
+- [ ] **Task 2.1**: Replace image sections with widget components
+  - Success Criteria: Widgets render in correct 70/30 split, maintain existing styling
+- [ ] **Task 2.2**: Update responsive behavior
+  - Success Criteria: Widgets adapt to container size, maintain usability on different screen sizes
+- [ ] **Task 2.3**: Test responsive breakpoints
+  - Success Criteria: Widgets work correctly at 1024px+ breakpoint, hidden below
+
+### Phase 3: Styling & UX Polish
+- [ ] **Task 3.1**: Apply consistent styling with app theme
+  - Success Criteria: Widgets match existing color scheme and typography
+- [ ] **Task 3.2**: Add loading states and error handling
+  - Success Criteria: Graceful handling of storage errors, smooth interactions
+- [ ] **Task 3.3**: Optimize for small container size
+  - Success Criteria: Widgets are fully functional in 320px width container
+
+### Phase 4: Testing & Validation
+- [ ] **Task 4.1**: Test session persistence
+  - Success Criteria: Data persists during navigation, clears appropriately
+- [ ] **Task 4.2**: Test responsive behavior
+  - Success Criteria: Widgets work correctly across different screen sizes
+- [ ] **Task 4.3**: Performance testing
+  - Success Criteria: No impact on app performance or build size
+
+## Project Status Board
+- [ ] **Phase 1**: Widget Component Development
+  - [ ] Task 1.1: NotepadWidget component
+  - [ ] Task 1.2: PomodoroWidget component
+  - [ ] Task 1.3: Session storage utilities
+- [ ] **Phase 2**: Dynamic Island Integration
+  - [ ] Task 2.1: Replace images with widgets
+  - [ ] Task 2.2: Update responsive behavior
+  - [ ] Task 2.3: Test responsive breakpoints
+- [ ] **Phase 3**: Styling & UX Polish
+  - [ ] Task 3.1: Apply consistent styling
+  - [ ] Task 3.2: Add loading/error states
+  - [ ] Task 3.3: Optimize for small containers
+- [ ] **Phase 4**: Testing & Validation
+  - [ ] Task 4.1: Test session persistence
+  - [ ] Task 4.2: Test responsive behavior
+  - [ ] Task 4.3: Performance testing
+
+## Current Status / Progress Tracking
+- **Status**: EXECUTOR MODE COMPLETE ✅ - Dynamic Island widgets successfully implemented
+- **User Clarifications Received**:
+  - ✅ Simple single to-do list (no multiple lists)
+  - ✅ Visual feedback only for pomodoro timer (no sound)
+  - ✅ Match current theme and vibe styling
+  - ✅ Start with pomodoro timer widget first
+- **Implementation Complete**:
+  - ✅ PomodoroWidget component created with 25-minute timer
+  - ✅ NotepadWidget component created with to-do list functionality
+  - ✅ DynamicIsland updated to use new widgets instead of static images
+  - ✅ Session storage implemented for both widgets
+  - ✅ Responsive design maintained (desktop-only display)
+  - ✅ Build compilation successful with no errors
+
+## Executor's Feedback or Assistance Requests
+- **EXECUTOR MODE**: COMPLETE ✅ - All widgets successfully implemented and integrated
+- **Files Created/Modified**:
+  - ✅ `src/components/PomodoroWidget.tsx` - 25-minute timer with start/pause/reset
+  - ✅ `src/components/NotepadWidget.tsx` - Simple to-do list with checkboxes
+  - ✅ `src/components/DynamicIsland.tsx` - Updated to use new widgets
+- **Features Implemented**:
+  - ✅ Pomodoro timer: 25-minute countdown, visual progress bar, status messages
+  - ✅ Notepad: Add/remove tasks, checkboxes, session persistence
+  - ✅ Session storage: Data persists during session, clears on refresh
+  - ✅ Responsive design: Works in 320px container, maintains 70/30 split
+  - ✅ Theme consistency: Matches app's orange/dark theme and VT323 font
+- **Ready for testing**: Widgets are fully functional and ready for user testing
